@@ -302,10 +302,10 @@ function prepare_frontend_for_packaging() {
     mkdir -p "$DIST_DIR/$PRODUCT_FOLDER/$GATE_APP_DIR"
     
     # Copy Next.js standalone output with all files including hidden ones
-    if [ -d "$FRONTEND_GATE_APP_DIR/dist/.next/standalone/apps/gate/dist/" ]; then
+    if [ -d "$FRONTEND_GATE_APP_DIR/dist/.next/standalone/" ]; then
         echo "Copying gate app build output..."
         shopt -s dotglob
-        cp -r "$FRONTEND_GATE_APP_DIR/dist/.next/standalone/apps/gate/dist/" "$DIST_DIR/$PRODUCT_FOLDER/$GATE_APP_DIR"
+        cp -r "$FRONTEND_GATE_APP_DIR/dist/.next/standalone/" "$DIST_DIR/$PRODUCT_FOLDER/$GATE_APP_DIR"
         shopt -u dotglob
     else
         echo "Warning: Frontend build output not found at $FRONTEND_GATE_APP_DIR/dist/.next/standalone"

@@ -27,7 +27,7 @@ import UsersListPage from './features/users/pages/UsersListPage';
 import HomePage from './features/home/pages/HomePage';
 import CreateUserPage from './features/users/pages/CreateUserPage';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme} defaultMode="light">

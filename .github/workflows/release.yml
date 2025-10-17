@@ -130,9 +130,10 @@ jobs:
             OS="${platform%%:*}"
             ARCH="${platform#*:}"
             
-            echo "🔨 Building Thunder backend for $OS/$ARCH..."
+            echo "🔨 Building Thunder backend & frontend for $OS/$ARCH..."
             make build_backend OS=$OS ARCH=$ARCH
-            
+            make build_frontend OS=$OS ARCH=$ARCH
+
             # Optional: Add a small delay to prevent resource contention
             sleep 1
           done

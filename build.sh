@@ -313,9 +313,9 @@ function prepare_frontend_for_packaging() {
     echo "================================================================"
 }
 
-function package_backend() {
+function package() {
     echo "================================================================"
-    echo "Packaging backend artifacts..."
+    echo "Packaging backend & frontend artifacts..."
 
     mkdir -p "$DIST_DIR/$PRODUCT_FOLDER"
 
@@ -680,8 +680,10 @@ case "$1" in
         ;;
     build_backend)
         build_backend
+        package
+        ;;
+    build_frontend)
         build_frontend
-        package_backend
         ;;
     build_samples)
         build_sample_app
@@ -693,7 +695,7 @@ case "$1" in
     build)
         build_backend
         build_frontend
-        package_backend
+        package
         build_sample_app
         package_sample_app
         ;;
@@ -714,13 +716,13 @@ case "$1" in
         run
         ;;
     *)
-        echo "Usage: ./build.sh {clean|build|test|run} [OS] [ARCH]"
+        echo "Usage: ./build.sh {clean|build|build_backend|build_frontend|test|run} [OS] [ARCH]"
         echo ""
         echo "  clean                    - Clean build artifacts"
         echo "  clean_all                - Clean all build artifacts including distributions"
         echo "  build                    - Build the complete Thunder application (backend + frontend + samples)"
-        echo "  build_backend            - Build the Thunder backend server"
-        echo "  build_frontend           - Build the Next.js frontend applications"
+        echo "  build_backend            - Build only the Thunder backend server"
+        echo "  build_frontend           - Build only the Next.js frontend applications"
         echo "  build_samples            - Build the sample applications"
         echo "  test_unit                - Run unit tests with coverage"
         echo "  test_integration         - Run integration tests"

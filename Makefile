@@ -44,7 +44,7 @@ clean_all:
 clean:
 	./build.sh clean $(OS) $(ARCH)
 
-build: build_backend build_samples
+build: build_backend build_frontend build_samples
 
 build_backend:
 	./build.sh build_backend $(OS) $(ARCH)
@@ -73,6 +73,7 @@ build_with_coverage:
 	@echo "================================================================"
 	./build.sh test_unit $(OS) $(ARCH)
 	ENABLE_COVERAGE=true ./build.sh build_backend $(OS) $(ARCH)
+	./build.sh build_frontend
 	./build.sh test_integration $(OS) $(ARCH)
 	./build.sh merge_coverage $(OS) $(ARCH)
 	@echo "================================================================"

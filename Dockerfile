@@ -17,11 +17,14 @@
 # ----------------------------------------------------------------------------
 
 # WSO2 Thunder Docker Image
-# Build stage - compile the Go binary for the target architecture
+# Build stage - compile the Go binary and build frontend for the target architecture
 FROM golang:1.25-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git make bash sqlite openssl zip
+# Install build dependencies including Node.js and npm
+RUN apk add --no-cache git make bash sqlite openssl zip nodejs npm
+
+# Set environment variables for CI build
+ENV CI=true
 
 # Set the working directory
 WORKDIR /app
@@ -53,12 +56,12 @@ RUN if [ -n "$CERT_FILE" ] && [ -n "$KEY_FILE" ] && [ -f "$CERT_FILE" ] && [ -f 
         echo "✅ New certificates generated"; \
     fi
 
-# Build the binary for the target architecture
+# Build both frontend and backend for the target architecture
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        ./build.sh build_backend linux amd64; \
+        ./build.sh build linux amd64; \
     else \
-        ./build.sh build_backend linux arm64; \
+        ./build.sh build linux arm64; \
     fi
 
 # List the contents of the dist directory to verify zip output
@@ -104,11 +107,15 @@ RUN chown -R thunder:thunder /opt/thunder && \
 # Expose the default port
 EXPOSE 8090
 
+# Expose the Gate port
+EXPOSE 9090
+
 # Switch to thunder user
 USER thunder
 
 # Set environment variables
 ENV BACKEND_PORT=8090
+ENV FRONTEND_PORT=9090
 
 # Start the application
 CMD ["./start.sh"]

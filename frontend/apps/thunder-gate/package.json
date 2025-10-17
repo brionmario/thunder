@@ -34,7 +34,6 @@
   "dependencies": {
     "@emotion/react": "catalog:",
     "@emotion/styled": "catalog:",
-    "@mui/icons-material": "catalog:",
     "@mui/material": "catalog:",
     "@thunder/ui": "workspace:^",
     "lucide-react": "catalog:",

@@ -25,6 +25,7 @@ import {StrictMode} from 'react';
 import App from './Dashboard';
 import UsersListPage from './features/users/pages/UsersListPage';
 import HomePage from './features/home/pages/HomePage';
+import CreateUserPage from './features/users/pages/CreateUserPage';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/" element={<App />}>
               <Route path="/" element={<HomePage />} />
               <Route path="users" element={<UsersListPage />} />
+              <Route path="users/create" element={<CreateUserPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

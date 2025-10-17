@@ -25,8 +25,8 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {DataGrid, type GridColDef, type GridRenderCellParams} from '@mui/x-data-grid';
+import {EllipsisVertical} from 'lucide-react';
 import useGetUsers from '../api/useGetUsers';
 import useGetUserSchema from '../api/useGetUserSchema';
 import type {UserWithDetails} from '../types/users';
@@ -266,7 +266,7 @@ export default function UsersList(props: UsersListProps) {
             // Add action handler here
           }}
         >
-          <MoreVertIcon />
+          <EllipsisVertical size={16} />
         </IconButton>
       ),
     });

@@ -23,12 +23,10 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import {useMemo, useState} from 'react';
+import {Plus, RefreshCw, Search} from 'lucide-react';
 import UsersList from '../components/UsersList';
 import useGetUserSchemas from '../api/useGetUserSchemas';
 import type {SchemaInterface} from '../types/users';
@@ -62,10 +60,10 @@ export default function UsersListPage() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => window.location.reload()}>
+          <Button variant="outlined" startIcon={<RefreshCw size={16} />} onClick={() => window.location.reload()}>
             Refresh
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/users/new')}>
+          <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => navigate('/users/create')}>
             Add User
           </Button>
         </Stack>
@@ -80,7 +78,7 @@ export default function UsersListPage() {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon />
+                <Search size={16} />
               </InputAdornment>
             ),
           }}

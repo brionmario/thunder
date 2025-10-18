@@ -48,10 +48,13 @@ clean_all:
 clean:
 	./build.sh clean $(OS) $(ARCH)
 
-build: build_backend build_samples
+build: build_backend build_frontend build_samples
 
 build_backend:
 	./build.sh build_backend $(OS) $(ARCH)
+
+build_frontend:
+	./build.sh build_frontend
 
 package_samples:
 	./build.sh package_samples $(OS) $(ARCH)
@@ -74,6 +77,7 @@ build_with_coverage:
 	@echo "================================================================"
 	./build.sh test_unit $(OS) $(ARCH)
 	ENABLE_COVERAGE=true ./build.sh build_backend $(OS) $(ARCH)
+	./build.sh build_frontend
 	./build.sh test_integration $(OS) $(ARCH)
 	./build.sh merge_coverage $(OS) $(ARCH)
 	@echo "================================================================"
@@ -109,8 +113,9 @@ help:
 	@echo "  backend                       - Clean, build, and test only the backend."
 	@echo "  clean                         - Remove build artifacts."
 	@echo "  clean_all                     - Remove all build artifacts including distribution files."
-	@echo "  build                         - Build the Go project and frontend, then package."
+	@echo "  build                         - Build the complete Thunder application (backend + frontend + samples)."
 	@echo "  build_backend                 - Build the backend Go application."
+	@echo "  build_frontend                - Build the Next.js frontend applications."
 	@echo "  package_samples               - Package sample applications."
 	@echo "  build_samples                 - Build sample applications."
 	@echo "  test_unit                     - Run unit tests."
@@ -127,7 +132,7 @@ help:
 	@echo "  mockery                       - Generate mocks for unit tests using mockery."
 	@echo "  help                          - Show this help message."
 
-.PHONY: all prepare clean clean_all build build_samples package_samples run
+.PHONY: all prepare clean clean_all build build_backend build_frontend build_samples package_samples run
 .PHONY: docker-build docker-build-latest docker-build-multiarch 
 .PHONY: docker-build-multiarch-latest docker-build-multiarch-push
 .PHONY: test_unit test_integration build_with_coverage test

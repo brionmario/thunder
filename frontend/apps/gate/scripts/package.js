@@ -102,6 +102,24 @@ try {
     stdio: 'inherit',
   });
 
+  // Move necessary files from .next/standalone/apps/gate/dist and cleanup.
+  execSync('cp -r .next/standalone/apps/gate/dist/.next .next/standalone/', {
+    cwd: distFolder,
+    stdio: 'inherit',
+  });
+  execSync('cp -r .next/standalone/apps/gate/dist/node_modules .next/standalone/', {
+    cwd: distFolder,
+    stdio: 'inherit',
+  });
+  execSync('cp -r .next/standalone/apps/gate/dist/package.json .next/standalone/', {
+    cwd: distFolder,
+    stdio: 'inherit',
+  });
+  execSync('rm -rf .next/standalone/apps', {
+    cwd: distFolder,
+    stdio: 'inherit',
+  });
+
   console.log('Copying public and static assets into .next/standalone...');
   execSync('cp -r public .next/standalone/', {
     cwd: distFolder,

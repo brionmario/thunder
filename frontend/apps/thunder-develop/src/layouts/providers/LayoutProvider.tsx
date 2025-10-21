@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { NavigationItem } from '../models/layouts';
+import type { NavigationItem } from '../models/layouts';
 import LayoutContext from '../contexts/NavigationContext';
 
 export default function LayoutProvider({ children }: { children: ReactNode }) {

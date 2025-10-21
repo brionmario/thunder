@@ -23,43 +23,44 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
-import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
-import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
-import HelpRoundedIcon from '@mui/icons-material/HelpRounded';
+import {Blocks, House, Info, LayoutGrid, MessageCircleQuestionMark, Settings, User, UsersRound} from 'lucide-react';
 import useNavigation from '@/layouts/contexts/useNavigation';
 
 const mainListItems = [
   {
     id: 'home',
     text: 'Home',
-    icon: <HomeRoundedIcon />,
+    icon: <House size={16} />,
     category: 'Dashboard',
     path: '/',
   },
   {
     id: 'users',
     text: 'Users',
-    icon: <PeopleRoundedIcon />,
+    icon: <UsersRound size={16} />,
     category: 'Dashboard',
     path: '/users',
   },
   {
+    id: 'user-types',
+    text: 'User Types',
+    icon: <User size={16} />,
+    category: 'Dashboard',
+    path: '/user-types',
+  },
+  {
     id: 'analytics',
     text: 'Integrations',
-    icon: <AnalyticsRoundedIcon />,
+    icon: <Blocks size={16} />,
     category: 'Dashboard',
-    path: '/',
+    path: '/integrations',
   },
   {
     id: 'tasks',
     text: 'Applications',
-    icon: <AssignmentRoundedIcon />,
+    icon: <LayoutGrid size={16} />,
     category: 'Dashboard',
-    path: '/',
+    path: '/applications',
   },
 ];
 
@@ -67,23 +68,9 @@ const secondaryListItems = [
   {
     id: 'settings',
     text: 'Settings',
-    icon: <SettingsRoundedIcon />,
+    icon: <Settings size={14} />,
     category: 'Settings',
     path: '/settings',
-  },
-  {
-    id: 'about',
-    text: 'About',
-    icon: <InfoRoundedIcon />,
-    category: 'Settings',
-    path: '/about',
-  },
-  {
-    id: 'feedback',
-    text: 'Feedback',
-    icon: <HelpRoundedIcon />,
-    category: 'Settings',
-    path: '/feedback',
   },
 ];
 

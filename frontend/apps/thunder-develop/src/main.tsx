@@ -25,8 +25,15 @@ import {StrictMode} from 'react';
 import App from './Dashboard';
 import UsersListPage from './features/users/pages/UsersListPage';
 import HomePage from './features/home/pages/HomePage';
+import CreateUserPage from './features/users/pages/CreateUserPage';
+import ViewUserPage from './features/users/pages/ViewUserPage';
+import UserTypesListPage from './features/user-types/pages/UserTypesListPage';
+import CreateUserTypePage from './features/user-types/pages/CreateUserTypePage';
+import ViewUserTypePage from './features/user-types/pages/ViewUserTypePage';
+import IntegrationsPage from './features/integrations/pages/IntegrationsPage';
+import ApplicationsPage from './features/applications/pages/ApplicationsPage';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme} defaultMode="light">
@@ -36,6 +43,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/" element={<App />}>
               <Route path="/" element={<HomePage />} />
               <Route path="users" element={<UsersListPage />} />
+              <Route path="users/create" element={<CreateUserPage />} />
+              <Route path="users/:userId" element={<ViewUserPage />} />
+              <Route path="user-types" element={<UserTypesListPage />} />
+              <Route path="user-types/create" element={<CreateUserTypePage />} />
+              <Route path="user-types/:id" element={<ViewUserTypePage />} />
+              <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="applications" element={<ApplicationsPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -19,7 +19,8 @@
 import {styled} from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Breadcrumbs, {breadcrumbsClasses} from '@mui/material/Breadcrumbs';
-import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
+import {ChevronRightIcon} from 'lucide-react';
+import Box from '@mui/material/Box';
 import useNavigation from '@/layouts/contexts/useNavigation';
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({theme}) => ({
@@ -37,7 +38,14 @@ export default function NavbarBreadcrumbs() {
   const {currentPage} = useNavigation();
 
   return (
-    <StyledBreadcrumbs aria-label="breadcrumb" separator={<NavigateNextRoundedIcon fontSize="small" />}>
+    <StyledBreadcrumbs
+      aria-label="breadcrumb"
+      separator={
+        <Box paddingX={1}>
+          <ChevronRightIcon size={11} />
+        </Box>
+      }
+    >
       <Typography variant="body1">{currentPage.category}</Typography>
       <Typography variant="body1" sx={{color: 'text.primary', fontWeight: 600}}>
         {currentPage.text}

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState, useCallback} from 'react';
 import {useNavigate} from 'react-router';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -25,10 +25,21 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import {DataGrid, type GridColDef, type GridRenderCellParams} from '@mui/x-data-grid';
+import {EllipsisVertical, Trash2, Eye} from 'lucide-react';
 import useGetUsers from '../api/useGetUsers';
 import useGetUserSchema from '../api/useGetUserSchema';
+import useDeleteUser from '../api/useDeleteUser';
 import type {UserWithDetails} from '../types/users';
 
 interface UsersListProps {
@@ -38,7 +49,8 @@ interface UsersListProps {
 export default function UsersList(props: UsersListProps) {
   const {selectedSchema} = props;
 
-  const {data: userData, loading: isUsersRequestLoading, error: usersRequestError} = useGetUsers();
+  const {data: userData, loading: isUsersRequestLoading, error: usersRequestError, refetch} = useGetUsers();
+  const {deleteUser, loading: isDeleting, error: deleteUserError} = useDeleteUser();
 
   const {
     data: defaultUserSchema,
@@ -50,6 +62,9 @@ export default function UsersList(props: UsersListProps) {
   const isLoading = isUsersRequestLoading || isDefaultUserSchemaRequestLoading;
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -62,6 +77,49 @@ export default function UsersList(props: UsersListProps) {
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
+  };
+
+  const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>, userId: string) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedUserId(userId);
+  }, []);
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleViewUser = async () => {
+    if (selectedUserId) {
+      await navigate(`/users/${selectedUserId}`);
+    }
+    handleMenuClose();
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSelectedUserId(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      await deleteUser(selectedUserId);
+      setDeleteDialogOpen(false);
+      setSelectedUserId(null);
+      // Refetch users list after successful deletion
+      await refetch();
+    } catch (err) {
+      // Error is already handled in the hook
+      console.error('Failed to delete user:', err);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const getInitials = (name?: string) => {
@@ -258,21 +316,20 @@ export default function UsersList(props: UsersListProps) {
       sortable: false,
       filterable: false,
       hideable: false,
-      renderCell: () => (
+      renderCell: (params: GridRenderCellParams<UserWithDetails>) => (
         <IconButton
           size="small"
           onClick={(e) => {
-            e.stopPropagation();
-            // Add action handler here
+            handleMenuOpen(e, params.row.id);
           }}
         >
-          <MoreVertIcon />
+          <EllipsisVertical size={16} />
         </IconButton>
       ),
     });
 
     return schemaColumns;
-  }, [defaultUserSchema]);
+  }, [defaultUserSchema, handleMenuOpen]);
 
   // Calculate initial column visibility: show first 4 columns, hide the rest
   const initialColumnVisibility = useMemo(() => {
@@ -327,6 +384,64 @@ export default function UsersList(props: UsersListProps) {
           }}
         />
       </Box>
+
+      {/* Actions Menu */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItem
+          onClick={() => {
+            handleViewUser().catch(() => {
+              // Handle error
+            });
+          }}
+        >
+          <ListItemIcon>
+            <Eye size={16} />
+          </ListItemIcon>
+          <ListItemText>View</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDeleteClick}>
+          <ListItemIcon>
+            <Trash2 size={16} color="red" />
+          </ListItemIcon>
+          <ListItemText sx={{color: 'error.main'}}>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+        <DialogTitle>Delete User</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this user? This action cannot be undone.
+          </DialogContentText>
+          {deleteUserError && (
+            <Alert severity="error" sx={{mt: 2}}>
+              <Typography variant="body2" sx={{fontWeight: 'bold'}}>
+                {deleteUserError.message}
+              </Typography>
+              {deleteUserError.description && <Typography variant="caption">{deleteUserError.description}</Typography>}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              handleDeleteConfirm().catch(() => {
+                // Handle error
+              });
+            }}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}

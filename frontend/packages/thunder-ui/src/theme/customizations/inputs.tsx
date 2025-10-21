@@ -22,9 +22,7 @@ import {outlinedInputClasses} from '@mui/material/OutlinedInput';
 import {svgIconClasses} from '@mui/material/SvgIcon';
 import {toggleButtonGroupClasses} from '@mui/material/ToggleButtonGroup';
 import {toggleButtonClasses} from '@mui/material/ToggleButton';
-import CheckBoxOutlineBlankRoundedIcon from '@mui/icons-material/CheckBoxOutlineBlankRounded';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
+import {Square, SquareCheck, SquareMinus} from 'lucide-react';
 import {gray, brand} from '../themePrimitives';
 
 const inputsCustomizations: Components<Theme> = {
@@ -330,9 +328,9 @@ const inputsCustomizations: Components<Theme> = {
   MuiCheckbox: {
     defaultProps: {
       disableRipple: true,
-      icon: <CheckBoxOutlineBlankRoundedIcon sx={{color: 'hsla(210, 0%, 0%, 0.0)'}} />,
-      checkedIcon: <CheckRoundedIcon sx={{height: 14, width: 14}} />,
-      indeterminateIcon: <RemoveRoundedIcon sx={{height: 14, width: 14}} />,
+      icon: <Square size={14} />,
+      checkedIcon: <SquareCheck size={14} />,
+      indeterminateIcon: <SquareMinus size={14} />,
     },
     styleOverrides: {
       root: ({theme}) => ({

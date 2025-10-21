@@ -16,30 +16,29 @@
  * under the License.
  */
 
-import {useState, useEffect, useCallback, useTransition} from 'react';
-import type {UserSchemaListResponse, SchemaListParams, ApiError} from '../types/users';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { UserSchemaListResponse, SchemaListParams, ApiError } from '../types/users';
 
 const API_BASE_URL = 'https://localhost:8090';
 
-/**
- * Hook to fetch user schemas from the API
- * GET https://localhost:8090/user-schemas
- *
- * Uses React's useTransition for non-blocking loading states
- */
 export default function useGetUserSchemas(params?: SchemaListParams) {
   const [data, setData] = useState<UserSchemaListResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [isPending, startFetchTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchUserSchemas = useCallback(
     async (queryParams?: SchemaListParams) => {
-      try {
-        setError(null);
+      // Cancel previous request
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
 
-        // Build query string
+      setIsLoading(true);
+      setError(null);
+
+      try {
         const searchParams = new URLSearchParams();
-        const finalParams = queryParams || params;
+        const finalParams = queryParams ?? params;
 
         if (finalParams?.limit !== undefined) {
           searchParams.append('limit', String(finalParams.limit));
@@ -56,10 +55,10 @@ export default function useGetUserSchemas(params?: SchemaListParams) {
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: abortControllerRef.current.signal,
         });
 
         if (!response.ok) {
-          // Handle error response
           const contentType = response.headers.get('content-type');
           if (contentType?.includes('application/json')) {
             const errorData = (await response.json()) as ApiError;
@@ -78,14 +77,15 @@ export default function useGetUserSchemas(params?: SchemaListParams) {
         }
 
         const result = (await response.json()) as UserSchemaListResponse;
-
-        // Use startFetchTransition to update state without blocking
-        startFetchTransition(() => {
-          setData(result);
-        });
-
+        setData(result);
         return result;
       } catch (err) {
+        // Don't set error if request was aborted
+        if (err instanceof Error && err.name === 'AbortError') {
+
+          return;
+        }
+
         if (err instanceof Error) {
           setError({
             code: 'FETCH_ERROR',
@@ -94,33 +94,32 @@ export default function useGetUserSchemas(params?: SchemaListParams) {
           });
         }
         throw err;
+      } finally {
+        setIsLoading(false);
       }
     },
     [params],
   );
 
   useEffect(() => {
-    startFetchTransition(() => {
-      fetchUserSchemas().catch(() => {
-        // Error is already handled in fetchUserSchemas
-      });
+    fetchUserSchemas().catch(() => {
+      // Error already handled
     });
+
+    // Cleanup on unmount
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [fetchUserSchemas]);
 
   const refetch = useCallback(
-    (newParams?: SchemaListParams) => {
-      startFetchTransition(() => {
-        fetchUserSchemas(newParams).catch(() => {
-          // Error is already handled in fetchUserSchemas
-        });
-      });
-    },
-    [fetchUserSchemas, startFetchTransition],
+    (newParams?: SchemaListParams) => fetchUserSchemas(newParams),
+    [fetchUserSchemas],
   );
 
   return {
     data,
-    loading: isPending,
+    loading: isLoading,
     error,
     refetch,
   };

@@ -24,9 +24,8 @@ import Stack from '@mui/material/Stack';
 import MuiToolbar from '@mui/material/Toolbar';
 import {tabsClasses} from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import {ColorModeIconDropdown} from '@thunder/ui';
+import {LayoutDashboard, Menu} from 'lucide-react';
 import SideMenuMobile from '../Sidebar/SideMenuMobile';
 import MenuButton from '../Sidebar/MenuButton';
 
@@ -84,7 +83,7 @@ export default function AppNavbar() {
           </Stack>
           <ColorModeIconDropdown />
           <MenuButton aria-label="menu" onClick={toggleDrawer(true)}>
-            <MenuRoundedIcon />
+            <Menu />
           </MenuButton>
           <SideMenuMobile open={open} toggleDrawer={toggleDrawer} />
         </Stack>
@@ -112,7 +111,7 @@ export function CustomIcon() {
         boxShadow: 'inset 0 2px 5px rgba(255, 255, 255, 0.3)',
       }}
     >
-      <DashboardRoundedIcon color="inherit" sx={{fontSize: '1rem'}} />
+      <LayoutDashboard />
     </Box>
   );
 }

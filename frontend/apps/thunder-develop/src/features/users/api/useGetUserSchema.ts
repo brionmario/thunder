@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {useState, useEffect, useCallback, useTransition} from 'react';
+import {useState, useEffect, useCallback, useTransition, useRef} from 'react';
 import type {ApiUserSchema, ApiError} from '../types/users';
 
 const API_BASE_URL = 'https://localhost:8090';
@@ -31,6 +31,8 @@ export default function useGetUserSchema(id?: string) {
   const [data, setData] = useState<ApiUserSchema | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [isPending, startFetchTransition] = useTransition();
+  const hasFetchedRef = useRef(false);
+  const lastIdRef = useRef<string | undefined>(undefined);
 
   const fetchUserSchema = useCallback(async (schemaId: string) => {
     try {
@@ -65,11 +67,7 @@ export default function useGetUserSchema(id?: string) {
       }
 
       const result = (await response.json()) as ApiUserSchema;
-
-      // Use startFetchTransition to update state without blocking
-      startFetchTransition(() => {
-        setData(result);
-      });
+      setData(result);
 
       return result;
     } catch (err) {
@@ -88,6 +86,13 @@ export default function useGetUserSchema(id?: string) {
     if (!id) {
       return;
     }
+
+    // Prevent double fetch in React Strict Mode and check if ID changed
+    if (hasFetchedRef.current && lastIdRef.current === id) {
+      return;
+    }
+    hasFetchedRef.current = true;
+    lastIdRef.current = id;
 
     startFetchTransition(() => {
       fetchUserSchema(id).catch(() => {

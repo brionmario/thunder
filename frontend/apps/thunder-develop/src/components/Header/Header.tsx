@@ -17,8 +17,8 @@
  */
 
 import Stack from '@mui/material/Stack';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
-import { ColorModeIconDropdown } from '@thunder/ui';
+import {ColorModeIconDropdown} from '@thunder/ui';
+import {Bell} from 'lucide-react';
 import NavbarBreadcrumbs from '../Navbar/NavbarBreadcrumbs';
 import MenuButton from '../Sidebar/MenuButton';
 
@@ -29,21 +29,21 @@ export default function Header() {
     <Stack
       direction="row"
       sx={{
-        display: { xs: 'none', md: 'flex' },
+        display: {xs: 'none', md: 'flex'},
         width: '100%',
-        alignItems: { xs: 'flex-start', md: 'center' },
+        alignItems: {xs: 'flex-start', md: 'center'},
         justifyContent: 'space-between',
-        maxWidth: { sm: '100%', md: '1700px' },
+        maxWidth: {sm: '100%', md: '1700px'},
         pt: 1.5,
         px: 3,
       }}
       spacing={2}
     >
       <NavbarBreadcrumbs />
-      <Stack direction="row" sx={{ gap: 1 }}>
+      <Stack direction="row" sx={{gap: 1}}>
         <Search />
         <MenuButton showBadge aria-label="Open notifications">
-          <NotificationsRoundedIcon />
+          <Bell size={16} />
         </MenuButton>
         <ColorModeIconDropdown />
       </Stack>

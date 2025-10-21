@@ -57,7 +57,7 @@ export default function SideMenu() {
           p: 1.5,
         }}
       >
-        <Typography variant="h4">⚡️ Thunder</Typography>
+        <Typography variant="h4">⚡️ Asgardeo</Typography>
       </Box>
       <Divider />
       <Box

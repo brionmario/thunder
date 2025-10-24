@@ -32,21 +32,21 @@ type TokenIntrospectionServiceInterface interface {
 	IntrospectToken(token, tokenTypeHint string) (*IntrospectResponse, error)
 }
 
-// TokenIntrospectionService implements the TokenIntrospectionServiceInterface.
-type TokenIntrospectionService struct {
+// tokenIntrospectionService implements the TokenIntrospectionServiceInterface.
+type tokenIntrospectionService struct {
 	jwtService jwt.JWTServiceInterface
 }
 
-// NewTokenIntrospectionService creates a new TokenIntrospectionService instance.
-func NewTokenIntrospectionService(jwtService jwt.JWTServiceInterface) TokenIntrospectionServiceInterface {
-	return &TokenIntrospectionService{
+// newTokenIntrospectionService creates a new tokenIntrospectionService instance (internal use).
+func newTokenIntrospectionService(jwtService jwt.JWTServiceInterface) TokenIntrospectionServiceInterface {
+	return &tokenIntrospectionService{
 		jwtService: jwtService,
 	}
 }
 
 // IntrospectToken validates and introspects the token. It only returns an error if a server error occurs.
 // All other failures are treated as inactive token as defined in the RFC 7662.
-func (s *TokenIntrospectionService) IntrospectToken(token, tokenTypeHint string) (*IntrospectResponse, error) {
+func (s *tokenIntrospectionService) IntrospectToken(token, tokenTypeHint string) (*IntrospectResponse, error) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "TokenIntrospectionService"))
 
 	if token == "" {
@@ -74,7 +74,7 @@ func (s *TokenIntrospectionService) IntrospectToken(token, tokenTypeHint string)
 }
 
 // validateToken verifies the signature and validity of the token.
-func (s *TokenIntrospectionService) validateToken(logger *log.Logger, token string) bool {
+func (s *tokenIntrospectionService) validateToken(logger *log.Logger, token string) bool {
 	if err := s.jwtService.VerifyJWT(token, "", ""); err != nil {
 		logger.Debug("Failed to verify refresh token", log.Error(err))
 		return false
@@ -83,7 +83,7 @@ func (s *TokenIntrospectionService) validateToken(logger *log.Logger, token stri
 }
 
 // prepareValidResponse prepares the response for a valid token introspection.
-func (s *TokenIntrospectionService) prepareValidResponse(payload map[string]interface{}) *IntrospectResponse {
+func (s *tokenIntrospectionService) prepareValidResponse(payload map[string]interface{}) *IntrospectResponse {
 	response := &IntrospectResponse{
 		Active: true,
 		// TODO: Revisit if/when adding support for other token types.

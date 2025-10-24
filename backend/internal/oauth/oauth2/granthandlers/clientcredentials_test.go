@@ -51,11 +51,9 @@ func TestClientCredentialsGrantHandlerSuite(t *testing.T) {
 func (suite *ClientCredentialsGrantHandlerTestSuite) SetupTest() {
 	// Initialize Thunder Runtime for tests
 	testConfig := &config.Config{
-		OAuth: config.OAuthConfig{
-			JWT: config.JWTConfig{
-				Issuer:         "https://test.thunder.io",
-				ValidityPeriod: 3600,
-			},
+		JWT: config.JWTConfig{
+			Issuer:         "https://test.thunder.io",
+			ValidityPeriod: 3600,
 		},
 	}
 	err := config.InitializeThunderRuntime("", testConfig)
@@ -63,23 +61,22 @@ func (suite *ClientCredentialsGrantHandlerTestSuite) SetupTest() {
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.handler = &clientCredentialsGrantHandler{
-		JWTService: suite.mockJWTService,
+		jwtService: suite.mockJWTService,
 	}
 
 	suite.oauthApp = &appmodel.OAuthAppConfigProcessedDTO{
-		AppID:              "app123",
-		ClientID:           "client123",
-		HashedClientSecret: "hashedsecret123",
-		RedirectURIs:       []string{"https://example.com/callback"},
-		GrantTypes:         []constants.GrantType{constants.GrantTypeClientCredentials},
-		ResponseTypes:      []constants.ResponseType{constants.ResponseTypeCode},
-		TokenEndpointAuthMethod: []constants.TokenEndpointAuthMethod{
-			constants.TokenEndpointAuthMethodClientSecretBasic},
+		AppID:                   "app123",
+		ClientID:                "client123",
+		HashedClientSecret:      "hashedsecret123",
+		RedirectURIs:            []string{"https://example.com/callback"},
+		GrantTypes:              []constants.GrantType{constants.GrantTypeClientCredentials},
+		ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
+		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretBasic,
 	}
 }
 
 func (suite *ClientCredentialsGrantHandlerTestSuite) TestNewClientCredentialsGrantHandler() {
-	handler := newClientCredentialsGrantHandler()
+	handler := newClientCredentialsGrantHandler(suite.mockJWTService)
 	assert.NotNil(suite.T(), handler)
 	assert.Implements(suite.T(), (*GrantHandlerInterface)(nil), handler)
 }

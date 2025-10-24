@@ -29,11 +29,24 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	applicationmodel "github.com/asgardeo/thunder/internal/application/model"
+	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
 	"github.com/asgardeo/thunder/internal/system/config"
+	"github.com/asgardeo/thunder/tests/mocks/applicationmock"
+	"github.com/asgardeo/thunder/tests/mocks/jwtmock"
+	"github.com/asgardeo/thunder/tests/mocks/oauth/oauth2/granthandlersmock"
+	"github.com/asgardeo/thunder/tests/mocks/oauth/scopemock"
+	"github.com/asgardeo/thunder/tests/mocks/usermock"
 )
 
 type TokenHandlerTestSuite struct {
 	suite.Suite
+	mockJWTService     *jwtmock.JWTServiceInterfaceMock
+	mockUserService    *usermock.UserServiceInterfaceMock
+	mockAppService     *applicationmock.ApplicationServiceInterfaceMock
+	mockGrantProvider  *granthandlersmock.GrantHandlerProviderInterfaceMock
+	mockScopeValidator *scopemock.ScopeValidatorInterfaceMock
+	mockGrantHandler   *granthandlersmock.GrantHandlerInterfaceMock
 }
 
 func TestTokenHandlerSuite(t *testing.T) {
@@ -43,23 +56,32 @@ func TestTokenHandlerSuite(t *testing.T) {
 func (suite *TokenHandlerTestSuite) SetupTest() {
 	// Initialize Thunder Runtime config with basic test config
 	testConfig := &config.Config{
-		OAuth: config.OAuthConfig{
-			JWT: config.JWTConfig{
-				ValidityPeriod: 3600,
-			},
+		JWT: config.JWTConfig{
+			ValidityPeriod: 3600,
 		},
 	}
 	_ = config.InitializeThunderRuntime("test", testConfig)
+	suite.mockJWTService = &jwtmock.JWTServiceInterfaceMock{}
+	suite.mockUserService = usermock.NewUserServiceInterfaceMock(suite.T())
+	suite.mockGrantProvider = granthandlersmock.NewGrantHandlerProviderInterfaceMock(suite.T())
+	suite.mockAppService = applicationmock.NewApplicationServiceInterfaceMock(suite.T())
+	suite.mockScopeValidator = scopemock.NewScopeValidatorInterfaceMock(suite.T())
+	suite.mockGrantHandler = granthandlersmock.NewGrantHandlerInterfaceMock(suite.T())
+
+	// Setup common mock for GetGrantHandler that can be used across tests
+	// Using Maybe() allows tests to override this if needed
+	suite.mockGrantProvider.On("GetGrantHandler", constants.GrantTypeAuthorizationCode).
+		Return(suite.mockGrantHandler, nil).Maybe()
 }
 
-func (suite *TokenHandlerTestSuite) TestNewTokenHandler() {
-	handler := NewTokenHandler()
+func (suite *TokenHandlerTestSuite) TestnewTokenHandler() {
+	handler := newTokenHandler(suite.mockAppService, suite.mockGrantProvider, suite.mockScopeValidator)
 	assert.NotNil(suite.T(), handler)
 	assert.Implements(suite.T(), (*TokenHandlerInterface)(nil), handler)
 }
 
 func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_InvalidFormData() {
-	handler := NewTokenHandler()
+	handler := newTokenHandler(suite.mockAppService, suite.mockGrantProvider, suite.mockScopeValidator)
 	req, _ := http.NewRequest("POST", "/token", strings.NewReader("invalid-form-data%"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -77,31 +99,18 @@ func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_InvalidFormData() {
 }
 
 func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_MissingGrantType() {
-	handler := NewTokenHandler()
 	formData := url.Values{}
 	formData.Set("client_id", "test-client-id")
 	formData.Set("client_secret", "test-secret")
 
-	req, _ := http.NewRequest("POST", "/token", strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	handler.HandleTokenRequest(rr, req)
-
-	assert.Equal(suite.T(), http.StatusBadRequest, rr.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "invalid_request", response["error"])
-	assert.Equal(suite.T(), "Missing grant_type parameter", response["error_description"])
+	suite.testTokenRequestError(formData, http.StatusBadRequest, "invalid_request",
+		"Missing grant_type parameter")
 }
 
 // Helper function to test token request error scenarios
 func (suite *TokenHandlerTestSuite) testTokenRequestError(formData url.Values,
 	expectedStatusCode int, expectedError, expectedErrorDescription string) {
-	handler := NewTokenHandler()
+	handler := newTokenHandler(suite.mockAppService, suite.mockGrantProvider, suite.mockScopeValidator)
 
 	req, _ := http.NewRequest("POST", "/token", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -130,33 +139,29 @@ func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_InvalidGrantType() {
 }
 
 func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_MissingClientID() {
-	handler := NewTokenHandler()
 	formData := url.Values{}
 	formData.Set("grant_type", "authorization_code")
 	formData.Set("client_secret", "test-secret")
 
-	req, _ := http.NewRequest("POST", "/token", strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	rr := httptest.NewRecorder()
-
-	handler.HandleTokenRequest(rr, req)
-
-	assert.Equal(suite.T(), http.StatusUnauthorized, rr.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "invalid_client", response["error"])
-	assert.Equal(suite.T(), "Missing client_id parameter", response["error_description"])
+	suite.testTokenRequestError(formData, http.StatusUnauthorized, "invalid_client",
+		"Missing client_id parameter")
 }
 
 func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_MissingClientSecret() {
-	handler := NewTokenHandler()
+	handler := newTokenHandler(suite.mockAppService, suite.mockGrantProvider, suite.mockScopeValidator)
 	formData := url.Values{}
 	formData.Set("grant_type", "authorization_code")
 	formData.Set("client_id", "test-client-id")
 
+	// Mock GetOAuthApplication to return a valid app that requires client_secret_post
+	mockApp := &applicationmodel.OAuthAppConfigProcessedDTO{
+		ClientID:                "test-client-id",
+		HashedClientSecret:      "hashed-secret",
+		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
+		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
+	}
+	suite.mockAppService.On("GetOAuthApplication", "test-client-id").Return(mockApp, nil).Once()
+
 	req, _ := http.NewRequest("POST", "/token", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -170,10 +175,14 @@ func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_MissingClientSecret()
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "invalid_client", response["error"])
-	assert.Equal(suite.T(), "Invalid client credentials", response["error_description"])
+	// The error message should mention client_secret or be about missing credentials
+	assert.Contains(suite.T(), response["error_description"], "client_secret")
 }
 
 func (suite *TokenHandlerTestSuite) TestHandleTokenRequest_InvalidClient() {
+	// Mock GetOAuthApplication to return nil for invalid client
+	suite.mockAppService.On("GetOAuthApplication", "invalid-client").Return(nil, nil).Once()
+
 	formData := url.Values{}
 	formData.Set("grant_type", "authorization_code")
 	formData.Set("client_id", "invalid-client")

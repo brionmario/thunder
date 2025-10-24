@@ -20,35 +20,46 @@ package granthandlers
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"time"
 
 	appmodel "github.com/asgardeo/thunder/internal/application/model"
-	authzconstants "github.com/asgardeo/thunder/internal/oauth/oauth2/authz/constants"
-	authzmodel "github.com/asgardeo/thunder/internal/oauth/oauth2/authz/model"
-	"github.com/asgardeo/thunder/internal/oauth/oauth2/authz/store"
+	"github.com/asgardeo/thunder/internal/oauth/oauth2/authz"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/model"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/pkce"
 	"github.com/asgardeo/thunder/internal/system/config"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
-	userservice "github.com/asgardeo/thunder/internal/user/service"
+	"github.com/asgardeo/thunder/internal/user"
+)
+
+// TODO: Temporary constant, move to a common place/ use a different strategy.
+const (
+	// UserAttributeGroups is the constant for user's groups.
+	UserAttributeGroups = "groups"
+	// DefaultGroupListLimit is the default limit for group list retrieval.
+	DefaultGroupListLimit = 20
 )
 
 // authorizationCodeGrantHandler handles the authorization code grant type.
 type authorizationCodeGrantHandler struct {
-	JWTService  jwt.JWTServiceInterface
-	AuthZStore  store.AuthorizationCodeStoreInterface
-	UserService userservice.UserServiceInterface
+	jwtService   jwt.JWTServiceInterface
+	authzService authz.AuthorizeServiceInterface
+	userService  user.UserServiceInterface
 }
 
 // newAuthorizationCodeGrantHandler creates a new instance of AuthorizationCodeGrantHandler.
-func newAuthorizationCodeGrantHandler() GrantHandlerInterface {
+func newAuthorizationCodeGrantHandler(
+	jwtService jwt.JWTServiceInterface,
+	userService user.UserServiceInterface,
+	authzService authz.AuthorizeServiceInterface,
+) GrantHandlerInterface {
 	return &authorizationCodeGrantHandler{
-		JWTService:  jwt.GetJWTService(),
-		AuthZStore:  store.NewAuthorizationCodeStore(),
-		UserService: userservice.GetUserService(),
+		jwtService:   jwtService,
+		authzService: authzService,
+		userService:  userService,
 	}
 }
 
@@ -106,16 +117,70 @@ func (h *authorizationCodeGrantHandler) HandleGrant(tokenRequest *model.TokenReq
 	*model.TokenResponseDTO, *model.ErrorResponse) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "AuthorizationCodeGrantHandler"))
 
-	authCode, err := h.AuthZStore.GetAuthorizationCode(tokenRequest.ClientID, tokenRequest.Code)
-	if err != nil || authCode.Code == "" {
+	// Retrieve and validate authorization code
+	authCode, errResponse := h.retrieveAndValidateAuthCode(tokenRequest, oauthApp, logger)
+	if errResponse != nil {
+		return nil, errResponse
+	}
+
+	// Parse authorized scopes
+	authorizedScopes, authorizedScopesStr := parseAuthorizedScopes(authCode.Scopes)
+
+	// Fetch user attributes and groups
+	attrs, userGroups, errResponse := h.fetchUserAttributesAndGroups(authCode.AuthorizedUserID, oauthApp, logger)
+	if errResponse != nil {
+		return nil, errResponse
+	}
+
+	// Build access token claims and attributes
+	jwtClaims, accessTokenAttributes := buildAccessTokenClaimsAndAttributes(
+		authorizedScopesStr, attrs, userGroups, oauthApp)
+
+	// Generate access token
+	iss, validityPeriod := resolveTokenConfig(oauthApp)
+	token, _, err := h.jwtService.GenerateJWT(authCode.AuthorizedUserID, authCode.ClientID,
+		iss, validityPeriod, jwtClaims)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:            constants.ErrorServerError,
+			ErrorDescription: "Failed to generate token",
+		}
+	}
+
+	// Update context attributes
+	updateContextAttributes(ctx, authCode)
+
+	// Build token response
+	tokenResponse := buildTokenResponse(token, authorizedScopes, tokenRequest.ClientID, accessTokenAttributes)
+
+	// Generate ID token if 'openid' scope is present
+	if slices.Contains(authorizedScopes, "openid") {
+		idToken, errResponse := h.generateIDToken(authCode, tokenRequest, authorizedScopes, attrs, oauthApp)
+		if errResponse != nil {
+			return nil, errResponse
+		}
+		tokenResponse.IDToken = *idToken
+	}
+
+	return tokenResponse, nil
+}
+
+// retrieveAndValidateAuthCode retrieves and validates the authorization code, including PKCE validation.
+func (h *authorizationCodeGrantHandler) retrieveAndValidateAuthCode(
+	tokenRequest *model.TokenRequest,
+	oauthApp *appmodel.OAuthAppConfigProcessedDTO,
+	logger *log.Logger,
+) (*authz.AuthorizationCode, *model.ErrorResponse) {
+	authCode, codeErr := h.authzService.GetAuthorizationCodeDetails(tokenRequest.ClientID, tokenRequest.Code)
+	if codeErr != nil {
 		return nil, &model.ErrorResponse{
 			Error:            constants.ErrorInvalidGrant,
 			ErrorDescription: "Invalid authorization code",
 		}
 	}
 
-	// Validate the retrieved authorization code.
-	errResponse := validateAuthorizationCode(tokenRequest, authCode)
+	// Validate the retrieved authorization code
+	errResponse := validateAuthorizationCode(tokenRequest, *authCode)
 	if errResponse != nil && errResponse.Error != "" {
 		return nil, errResponse
 	}
@@ -139,108 +204,170 @@ func (h *authorizationCodeGrantHandler) HandleGrant(tokenRequest *model.TokenReq
 			}
 		}
 	}
+	return authCode, nil
+}
 
-	// Invalidate the authorization code after use.
-	err = h.AuthZStore.DeactivateAuthorizationCode(authCode)
-	if err != nil {
-		return nil, &model.ErrorResponse{
-			Error:            constants.ErrorServerError,
-			ErrorDescription: "Failed to invalidate authorization code",
-		}
-	}
-
-	// Get authorized scopes from the authorization code
-	authorizedScopesStr := strings.TrimSpace(authCode.Scopes)
+// parseAuthorizedScopes parses the authorized scopes from the authorization code.
+func parseAuthorizedScopes(scopesStr string) ([]string, string) {
+	authorizedScopesStr := strings.TrimSpace(scopesStr)
 	authorizedScopes := []string{}
 	if authorizedScopesStr != "" {
 		authorizedScopes = strings.Split(authorizedScopesStr, " ")
 	}
+	return authorizedScopes, authorizedScopesStr
+}
 
-	// Generate a JWT token for the client
+// fetchUserAttributesAndGroups fetches user attributes and groups if required.
+func (h *authorizationCodeGrantHandler) fetchUserAttributesAndGroups(
+	userID string,
+	oauthApp *appmodel.OAuthAppConfigProcessedDTO,
+	logger *log.Logger,
+) (map[string]interface{}, []string, *model.ErrorResponse) {
+	var attrs map[string]interface{}
+	userGroups := make([]string, 0)
+
+	// Check if user attributes or groups are required
+	if len(oauthApp.Token.AccessToken.UserAttributes) == 0 &&
+		(oauthApp.Token.IDToken == nil || len(oauthApp.Token.IDToken.UserAttributes) == 0) {
+		return attrs, userGroups, nil
+	}
+
+	// Fetch user attributes
+	user, svcErr := h.userService.GetUser(userID)
+	if svcErr != nil {
+		logger.Error("Failed to fetch user attributes", log.String("userID", userID), log.Any("error", svcErr))
+		return nil, nil, &model.ErrorResponse{
+			Error:            constants.ErrorServerError,
+			ErrorDescription: "Something went wrong",
+		}
+	}
+
+	if err := json.Unmarshal(user.Attributes, &attrs); err != nil {
+		logger.Error("Failed to unmarshal user attributes", log.String("userID", userID), log.Error(err))
+		return nil, nil, &model.ErrorResponse{
+			Error:            constants.ErrorServerError,
+			ErrorDescription: "Something went wrong",
+		}
+	}
+
+	// Fetch user groups if required
+	needsGroups := slices.Contains(oauthApp.Token.AccessToken.UserAttributes, UserAttributeGroups) ||
+		(oauthApp.Token.IDToken != nil && slices.Contains(oauthApp.Token.IDToken.UserAttributes, UserAttributeGroups))
+
+	if needsGroups {
+		groups, svcErr := h.userService.GetUserGroups(userID, DefaultGroupListLimit, 0)
+		if svcErr != nil {
+			logger.Error("Failed to fetch user groups", log.String("userID", userID), log.Any("error", svcErr))
+			return nil, nil, &model.ErrorResponse{
+				Error:            constants.ErrorServerError,
+				ErrorDescription: "Something went wrong",
+			}
+		}
+
+		for _, group := range groups.Groups {
+			userGroups = append(userGroups, group.Name)
+		}
+	}
+
+	return attrs, userGroups, nil
+}
+
+// buildAccessTokenClaimsAndAttributes builds JWT claims and user attributes for the access token.
+func buildAccessTokenClaimsAndAttributes(
+	authorizedScopesStr string,
+	attrs map[string]interface{},
+	userGroups []string,
+	oauthApp *appmodel.OAuthAppConfigProcessedDTO,
+) (map[string]interface{}, map[string]interface{}) {
 	jwtClaims := make(map[string]interface{})
+	accessTokenAttributes := make(map[string]interface{})
+
+	// Add scope to JWT claims
 	if authorizedScopesStr != "" {
 		jwtClaims["scope"] = authorizedScopesStr
 	}
 
-	// Get token configuration from OAuth app
-	iss := ""
-	validityPeriod := int64(0)
-	if oauthApp.Token != nil && oauthApp.Token.AccessToken != nil {
-		iss = oauthApp.Token.AccessToken.Issuer
-		validityPeriod = oauthApp.Token.AccessToken.ValidityPeriod
-	}
-	if iss == "" {
-		iss = config.GetThunderRuntime().Config.OAuth.JWT.Issuer
-	}
-	if validityPeriod == 0 {
-		validityPeriod = config.GetThunderRuntime().Config.OAuth.JWT.ValidityPeriod
-	}
-
-	userAttributes := map[string]interface{}{}
-	if len(oauthApp.Token.AccessToken.UserAttributes) > 0 {
-		user, svcErr := h.UserService.GetUser(authCode.AuthorizedUserID)
-		if svcErr != nil {
-			logger.Error("Failed to fetch user attributes",
-				log.String("userID", authCode.AuthorizedUserID), log.Any("error", svcErr))
-			return nil, &model.ErrorResponse{
-				Error:            constants.ErrorServerError,
-				ErrorDescription: "Something went wrong",
-			}
-		}
-
-		var attrs map[string]interface{}
-		if err := json.Unmarshal(user.Attributes, &attrs); err != nil {
-			logger.Error("Failed to unmarshal user attributes", log.String("userID", authCode.AuthorizedUserID),
-				log.Error(err))
-			return nil, &model.ErrorResponse{
-				Error:            constants.ErrorServerError,
-				ErrorDescription: "Something went wrong",
-			}
-		}
-
+	// Add user attributes to claims and access token attributes
+	if len(oauthApp.Token.AccessToken.UserAttributes) > 0 && attrs != nil {
 		for _, attr := range oauthApp.Token.AccessToken.UserAttributes {
 			if val, ok := attrs[attr]; ok {
 				jwtClaims[attr] = val
-				userAttributes[attr] = val
+				accessTokenAttributes[attr] = val
 			}
 		}
 	}
 
-	token, _, err := h.JWTService.GenerateJWT(authCode.AuthorizedUserID, authCode.ClientID,
-		iss, validityPeriod, jwtClaims)
-	if err != nil {
-		return nil, &model.ErrorResponse{
-			Error:            constants.ErrorServerError,
-			ErrorDescription: "Failed to generate token",
+	// Handle user groups
+	if len(userGroups) > 0 {
+		if slices.Contains(oauthApp.Token.AccessToken.UserAttributes, UserAttributeGroups) {
+			jwtClaims[UserAttributeGroups] = userGroups
+			accessTokenAttributes[UserAttributeGroups] = userGroups
+		}
+		if oauthApp.Token.IDToken != nil &&
+			slices.Contains(oauthApp.Token.IDToken.UserAttributes, UserAttributeGroups) {
+			attrs[UserAttributeGroups] = userGroups
 		}
 	}
 
-	// Add context attributes.
+	return jwtClaims, accessTokenAttributes
+}
+
+// resolveTokenConfig resolves the issuer and validity period for the access token.
+func resolveTokenConfig(oauthApp *appmodel.OAuthAppConfigProcessedDTO) (string, int64) {
+	iss := ""
+	validityPeriod := int64(0)
+
+	// Get issuer from token config
+	if oauthApp.Token != nil && oauthApp.Token.Issuer != "" {
+		iss = oauthApp.Token.Issuer
+	} else {
+		iss = config.GetThunderRuntime().Config.JWT.Issuer
+	}
+
+	// Get validity period from access token config
+	if oauthApp.Token != nil && oauthApp.Token.AccessToken != nil {
+		validityPeriod = oauthApp.Token.AccessToken.ValidityPeriod
+	} else {
+		validityPeriod = config.GetThunderRuntime().Config.JWT.ValidityPeriod
+	}
+
+	return iss, validityPeriod
+}
+
+// updateContextAttributes updates the token context with subject and audience.
+func updateContextAttributes(ctx *model.TokenContext, authCode *authz.AuthorizationCode) {
 	if ctx.TokenAttributes == nil {
 		ctx.TokenAttributes = make(map[string]interface{})
 	}
 	ctx.TokenAttributes["sub"] = authCode.AuthorizedUserID
 	ctx.TokenAttributes["aud"] = authCode.ClientID
+}
 
-	// Prepare the token response.
+// buildTokenResponse builds the token response with access token details.
+func buildTokenResponse(
+	token string,
+	authorizedScopes []string,
+	clientID string,
+	accessTokenAttributes map[string]interface{},
+) *model.TokenResponseDTO {
 	accessToken := &model.TokenDTO{
 		Token:          token,
 		TokenType:      constants.TokenTypeBearer,
 		IssuedAt:       time.Now().Unix(),
 		ExpiresIn:      3600,
 		Scopes:         authorizedScopes,
-		ClientID:       tokenRequest.ClientID,
-		UserAttributes: userAttributes,
+		ClientID:       clientID,
+		UserAttributes: accessTokenAttributes,
 	}
 
 	return &model.TokenResponseDTO{
 		AccessToken: *accessToken,
-	}, nil
+	}
 }
 
 // validateAuthorizationCode validates the authorization code against the token request.
 func validateAuthorizationCode(tokenRequest *model.TokenRequest,
-	code authzmodel.AuthorizationCode) *model.ErrorResponse {
+	code authz.AuthorizationCode) *model.ErrorResponse {
 	if tokenRequest.ClientID != code.ClientID {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorInvalidClient,
@@ -256,14 +383,14 @@ func validateAuthorizationCode(tokenRequest *model.TokenRequest,
 		}
 	}
 
-	if code.State == authzconstants.AuthCodeStateInactive {
+	if code.State == authz.AuthCodeStateInactive {
 		// TODO: Revoke all the tokens issued for this authorization code.
 
 		return &model.ErrorResponse{
 			Error:            constants.ErrorInvalidGrant,
 			ErrorDescription: "Inactive authorization code",
 		}
-	} else if code.State != authzconstants.AuthCodeStateActive {
+	} else if code.State != authz.AuthCodeStateActive {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorInvalidGrant,
 			ErrorDescription: "Inactive authorization code",
@@ -278,4 +405,95 @@ func validateAuthorizationCode(tokenRequest *model.TokenRequest,
 	}
 
 	return nil
+}
+
+// getIDTokenClaims generates ID token claims based on scopes and application configuration
+func getIDTokenClaims(scopes []string, userAttributes map[string]interface{},
+	oauthApp *appmodel.OAuthAppConfigProcessedDTO) map[string]interface{} {
+	claims := make(map[string]interface{})
+	now := time.Now().Unix()
+	claims["auth_time"] = now
+
+	var idTokenUserAttributes []string
+	if oauthApp.Token != nil && oauthApp.Token.IDToken != nil {
+		idTokenUserAttributes = oauthApp.Token.IDToken.UserAttributes
+	}
+
+	if len(idTokenUserAttributes) == 0 {
+		return claims
+	}
+
+	for _, scope := range scopes {
+		var scopeClaims []string
+
+		if oauthApp.Token != nil && oauthApp.Token.IDToken != nil &&
+			oauthApp.Token.IDToken.ScopeClaims != nil {
+			if appClaims, exists := oauthApp.Token.IDToken.ScopeClaims[scope]; exists {
+				scopeClaims = appClaims
+			}
+		}
+
+		if scopeClaims == nil {
+			if scope, exists := constants.StandardOIDCScopes[scope]; exists {
+				scopeClaims = scope.Claims
+			}
+		}
+
+		for _, claim := range scopeClaims {
+			if slices.Contains(idTokenUserAttributes, claim) && userAttributes[claim] != nil {
+				claims[claim] = userAttributes[claim]
+			}
+		}
+	}
+
+	return claims
+}
+
+// generateIDToken generates an ID token for the given authorization code and scopes
+func (h *authorizationCodeGrantHandler) generateIDToken(authCode *authz.AuthorizationCode,
+	tokenRequest *model.TokenRequest, authorizedScopes []string, attrs map[string]interface{},
+	oauthApp *appmodel.OAuthAppConfigProcessedDTO) (*model.TokenDTO, *model.ErrorResponse) {
+	idTokenClaims := getIDTokenClaims(authorizedScopes, attrs, oauthApp)
+
+	// Resolve ID token issuer and validity period
+	idTokenIss := ""
+	idTokenValidityPeriod := int64(0)
+
+	// Get issuer from token config
+	if oauthApp.Token != nil && oauthApp.Token.Issuer != "" {
+		idTokenIss = oauthApp.Token.Issuer
+	} else {
+		idTokenIss = config.GetThunderRuntime().Config.JWT.Issuer
+	}
+
+	// Get validity period from ID token config
+	if oauthApp.Token != nil && oauthApp.Token.IDToken != nil {
+		idTokenValidityPeriod = oauthApp.Token.IDToken.ValidityPeriod
+	}
+	if idTokenValidityPeriod == 0 {
+		idTokenValidityPeriod = config.GetThunderRuntime().Config.JWT.ValidityPeriod
+	}
+
+	// Generate ID token JWT
+	idToken, _, err := h.jwtService.GenerateJWT(authCode.AuthorizedUserID, authCode.ClientID,
+		idTokenIss, idTokenValidityPeriod, idTokenClaims)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:            constants.ErrorServerError,
+			ErrorDescription: "Failed to generate ID token",
+		}
+	}
+
+	// Create ID token DTO
+	idTokenDTO := &model.TokenDTO{
+		Token:          idToken,
+		TokenType:      constants.TokenTypeJWT,
+		IssuedAt:       time.Now().Unix(),
+		ExpiresIn:      idTokenValidityPeriod,
+		Scopes:         authorizedScopes,
+		ClientID:       tokenRequest.ClientID,
+		UserAttributes: idTokenClaims,
+	}
+
+	return idTokenDTO, nil
 }

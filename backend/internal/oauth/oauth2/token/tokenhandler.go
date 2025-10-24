@@ -25,14 +25,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/asgardeo/thunder/internal/system/crypto/hash"
+	"github.com/asgardeo/thunder/internal/application"
+	"github.com/asgardeo/thunder/internal/system/hash"
 	"github.com/asgardeo/thunder/internal/system/utils"
 
-	appprovider "github.com/asgardeo/thunder/internal/application/provider"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/granthandlers"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/model"
-	scopeprovider "github.com/asgardeo/thunder/internal/oauth/scope/provider"
+	"github.com/asgardeo/thunder/internal/oauth/scope"
 	"github.com/asgardeo/thunder/internal/system/log"
 )
 
@@ -41,25 +41,29 @@ type TokenHandlerInterface interface {
 	HandleTokenRequest(w http.ResponseWriter, r *http.Request)
 }
 
-// TokenHandler implements the TokenHandlerInterface.
-type TokenHandler struct {
-	GrantHandlerProvider   granthandlers.GrantHandlerProviderInterface
-	ApplicationProvider    appprovider.ApplicationProviderInterface
-	ScopeValidatorProvider scopeprovider.ScopeValidatorProviderInterface
+// tokenHandler implements the TokenHandlerInterface.
+type tokenHandler struct {
+	appService           application.ApplicationServiceInterface
+	grantHandlerProvider granthandlers.GrantHandlerProviderInterface
+	scopeValidator       scope.ScopeValidatorInterface
 }
 
-// NewTokenHandler creates a new instance of TokenHandler.
-func NewTokenHandler() TokenHandlerInterface {
-	return &TokenHandler{
-		GrantHandlerProvider:   granthandlers.NewGrantHandlerProvider(),
-		ApplicationProvider:    appprovider.NewApplicationProvider(),
-		ScopeValidatorProvider: scopeprovider.NewScopeValidatorProvider(),
+// newTokenHandler creates a new instance of tokenHandler.
+func newTokenHandler(
+	appService application.ApplicationServiceInterface,
+	grantHandlerProvider granthandlers.GrantHandlerProviderInterface,
+	scopeValidator scope.ScopeValidatorInterface,
+) TokenHandlerInterface {
+	return &tokenHandler{
+		appService:           appService,
+		grantHandlerProvider: grantHandlerProvider,
+		scopeValidator:       scopeValidator,
 	}
 }
 
 // HandleTokenRequest handles the token request for OAuth 2.0.
 // It validates the client credentials and delegates to the appropriate grant handler.
-func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Request) {
+func (th *tokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Request) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "TokenHandler"))
 
 	// Parse the form data from the request body.
@@ -83,7 +87,7 @@ func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	grantHandler, handlerErr := th.GrantHandlerProvider.GetGrantHandler(grantType)
+	grantHandler, handlerErr := th.grantHandlerProvider.GetGrantHandler(grantType)
 	if handlerErr != nil {
 		if errors.Is(handlerErr, constants.UnSupportedGrantTypeError) {
 			utils.WriteJSONError(w, constants.ErrorUnsupportedGrantType, "Unsupported grant type",
@@ -102,8 +106,7 @@ func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Retrieve the OAuth application based on the client id.
-	appService := th.ApplicationProvider.GetApplicationService()
-	oauthApp, err := appService.GetOAuthApplication(clientID)
+	oauthApp, err := th.appService.GetOAuthApplication(clientID)
 	if err != nil || oauthApp == nil {
 		utils.WriteJSONError(w, constants.ErrorInvalidClient,
 			"Invalid client credentials", http.StatusUnauthorized, nil)
@@ -163,8 +166,7 @@ func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Validate and filter scopes.
-	scopeValidator := th.ScopeValidatorProvider.GetScopeValidator()
-	validScopes, scopeError := scopeValidator.ValidateScopes(tokenRequest.Scope, oauthApp.ClientID)
+	validScopes, scopeError := th.scopeValidator.ValidateScopes(tokenRequest.Scope, oauthApp.ClientID)
 	if scopeError != nil {
 		utils.WriteJSONError(w, scopeError.Error, scopeError.ErrorDescription, http.StatusBadRequest, nil)
 		return
@@ -187,7 +189,7 @@ func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Reques
 		logger.Debug("Issuing refresh token for the token request", log.String("client_id", clientID),
 			log.String("grant_type", grantTypeStr))
 
-		refreshGrantHandler, handlerErr := th.GrantHandlerProvider.GetGrantHandler(constants.GrantTypeRefreshToken)
+		refreshGrantHandler, handlerErr := th.grantHandlerProvider.GetGrantHandler(constants.GrantTypeRefreshToken)
 		if handlerErr != nil {
 			logger.Error("Failed to get refresh grant handler", log.Error(handlerErr))
 			utils.WriteJSONError(w, constants.ErrorServerError,
@@ -219,6 +221,7 @@ func (th *TokenHandler) HandleTokenRequest(w http.ResponseWriter, r *http.Reques
 		ExpiresIn:    tokenRespDTO.AccessToken.ExpiresIn,
 		RefreshToken: tokenRespDTO.RefreshToken.Token,
 		Scope:        scopes,
+		IDToken:      tokenRespDTO.IDToken.Token,
 	}
 
 	logger.Debug("Token generated successfully", log.String("client_id", clientID),

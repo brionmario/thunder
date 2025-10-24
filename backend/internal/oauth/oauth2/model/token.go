@@ -40,6 +40,7 @@ type TokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+	IDToken      string `json:"id_token,omitempty"`
 }
 
 // TokenContext holds context data for the token issuance.
@@ -62,4 +63,5 @@ type TokenDTO struct {
 type TokenResponseDTO struct {
 	AccessToken  TokenDTO `json:"access_token"`
 	RefreshToken TokenDTO `json:"refresh_token,omitempty"`
+	IDToken      TokenDTO `json:"id_token,omitempty"`
 }

@@ -56,7 +56,9 @@ var (
 					RedirectURIs:            []string{"http://localhost/testapp/callback"},
 					GrantTypes:              []string{"authorization_code", "client_credentials"},
 					ResponseTypes:           []string{"code"},
-					TokenEndpointAuthMethod: []string{"client_secret_basic", "client_secret_post"},
+					TokenEndpointAuthMethod: "client_secret_basic",
+					PKCERequired:            false,
+					PublicClient:            false,
 				},
 			},
 		},
@@ -83,7 +85,9 @@ var (
 					RedirectURIs:            []string{"http://localhost/apptocreate/callback"},
 					GrantTypes:              []string{"authorization_code", "client_credentials"},
 					ResponseTypes:           []string{"code"},
-					TokenEndpointAuthMethod: []string{"client_secret_basic", "client_secret_post"},
+					TokenEndpointAuthMethod: "client_secret_basic",
+					PKCERequired:            false,
+					PublicClient:            false,
 				},
 			},
 		},
@@ -110,7 +114,9 @@ var (
 					RedirectURIs:            []string{"http://localhost/callback2"},
 					GrantTypes:              []string{"authorization_code"},
 					ResponseTypes:           []string{"code"},
-					TokenEndpointAuthMethod: []string{"client_secret_basic"},
+					TokenEndpointAuthMethod: "client_secret_basic",
+					PKCERequired:            false,
+					PublicClient:            false,
 				},
 			},
 		},
@@ -118,10 +124,8 @@ var (
 )
 
 var (
-	testAppID          string
-	createdAppID       string
-	testAppInstance    Application
-	createdAppInstance Application
+	testAppID       string
+	testAppInstance Application
 )
 
 type ApplicationAPITestSuite struct {
@@ -148,20 +152,6 @@ func (ts *ApplicationAPITestSuite) SetupSuite() {
 	if len(testAppInstance.InboundAuthConfig) > 0 && testAppInstance.InboundAuthConfig[0].OAuthAppConfig != nil {
 		testAppInstance.ClientID = testAppInstance.InboundAuthConfig[0].OAuthAppConfig.ClientID
 	}
-
-	// Create appToCreate application
-	app2ID, err := createApplication(appToCreate)
-	if err != nil {
-		ts.T().Fatalf("Failed to create appToCreate application during setup: %v", err)
-	}
-	createdAppID = app2ID
-
-	// Build the test app structure for validations
-	createdAppInstance = appToCreate
-	createdAppInstance.ID = createdAppID
-	if len(createdAppInstance.InboundAuthConfig) > 0 && createdAppInstance.InboundAuthConfig[0].OAuthAppConfig != nil {
-		createdAppInstance.ClientID = createdAppInstance.InboundAuthConfig[0].OAuthAppConfig.ClientID
-	}
 }
 
 // TearDownSuite cleans up test applications
@@ -171,14 +161,6 @@ func (ts *ApplicationAPITestSuite) TearDownSuite() {
 		err := deleteApplication(testAppID)
 		if err != nil {
 			ts.T().Logf("Failed to delete test application during teardown: %v", err)
-		}
-	}
-
-	// Delete the appToCreate application
-	if createdAppID != "" {
-		err := deleteApplication(createdAppID)
-		if err != nil {
-			ts.T().Logf("Failed to delete appToCreate application during teardown: %v", err)
 		}
 	}
 }
@@ -232,8 +214,8 @@ func (ts *ApplicationAPITestSuite) TestApplicationListing() {
 		ts.T().Fatalf("Response does not contain any applications")
 	}
 
-	// Verify that both test applications are present in the list
-	testApps := []Application{testAppInstance, createdAppInstance}
+	// Verify that the test application is present in the list
+	testApps := []Application{testAppInstance}
 	for _, expectedApp := range testApps {
 		found := false
 		for _, app := range appList.Applications {
@@ -253,23 +235,45 @@ func (ts *ApplicationAPITestSuite) TestApplicationListing() {
 
 // Test application get by ID
 func (ts *ApplicationAPITestSuite) TestApplicationGetByID() {
-
-	if createdAppID == "" {
-		ts.T().Fatal("Application ID is not available for retrieval")
+	// Create an application for get testing
+	appID, err := createApplication(appToCreate)
+	if err != nil {
+		ts.T().Fatalf("Failed to create application for get test: %v", err)
 	}
-	retrieveAndValidateApplicationDetails(ts, createdAppInstance)
+	defer func() {
+		// Clean up the created application
+		if err := deleteApplication(appID); err != nil {
+			ts.T().Logf("Failed to delete application after get test: %v", err)
+		}
+	}()
+
+	// Build the expected app structure for validation
+	expectedApp := appToCreate
+	expectedApp.ID = appID
+	if len(expectedApp.InboundAuthConfig) > 0 && expectedApp.InboundAuthConfig[0].OAuthAppConfig != nil {
+		expectedApp.ClientID = expectedApp.InboundAuthConfig[0].OAuthAppConfig.ClientID
+	}
+	
+	retrieveAndValidateApplicationDetails(ts, expectedApp)
 }
 
 // Test application update
 func (ts *ApplicationAPITestSuite) TestApplicationUpdate() {
-
-	if createdAppID == "" {
-		ts.T().Fatal("Application ID is not available for update")
+	// Create an application for update testing
+	appID, err := createApplication(appToCreate)
+	if err != nil {
+		ts.T().Fatalf("Failed to create application for update test: %v", err)
 	}
+	defer func() {
+		// Clean up the created application
+		if err := deleteApplication(appID); err != nil {
+			ts.T().Logf("Failed to delete application after update test: %v", err)
+		}
+	}()
 
 	// Add the ID to the application to update
 	appToUpdateWithID := appToUpdate
-	appToUpdateWithID.ID = createdAppID
+	appToUpdateWithID.ID = appID
 
 	appJSON, err := json.Marshal(appToUpdateWithID)
 	if err != nil {
@@ -277,7 +281,7 @@ func (ts *ApplicationAPITestSuite) TestApplicationUpdate() {
 	}
 
 	reqBody := bytes.NewReader(appJSON)
-	req, err := http.NewRequest("PUT", testServerURL+"/applications/"+createdAppID, reqBody)
+	req, err := http.NewRequest("PUT", testServerURL+"/applications/"+appID, reqBody)
 	if err != nil {
 		ts.T().Fatalf("Failed to create update request: %v", err)
 	}
@@ -434,7 +438,6 @@ func createApplication(app Application) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("response does not contain id")
 	}
-	createdAppID = id
 	return id, nil
 }
 
@@ -461,4 +464,269 @@ func deleteApplication(appID string) error {
 		return fmt.Errorf("expected status 204, got %d. Response: %s", resp.StatusCode, string(responseBody))
 	}
 	return nil
+}
+
+// TestApplicationCreationWithDefaults tests that applications created without grant_types, response_types, or token_endpoint_auth_method get proper defaults
+func (ts *ApplicationAPITestSuite) TestApplicationCreationWithDefaults() {
+	appWithDefaults := Application{
+		Name:                      "App With Defaults",
+		Description:               "Application to test default values",
+		IsRegistrationFlowEnabled: false,
+		URL:                       "https://defaults.example.com",
+		LogoURL:                   "https://defaults.example.com/logo.png",
+		AuthFlowGraphID:           "auth_flow_config_basic",
+		RegistrationFlowGraphID:   "registration_flow_config_basic",
+		Certificate: &ApplicationCert{
+			Type:  "NONE",
+			Value: "",
+		},
+		InboundAuthConfig: []InboundAuthConfig{
+			{
+				Type: "oauth2",
+				OAuthAppConfig: &OAuthAppConfig{
+					ClientID:     "defaults_app_client",
+					ClientSecret: "defaults_app_secret",
+					RedirectURIs: []string{"http://localhost/defaults/callback"},
+					// Intentionally omitting GrantTypes, ResponseTypes, and TokenEndpointAuthMethod
+					PKCERequired: false,
+					PublicClient: false,
+				},
+			},
+		},
+	}
+
+	appID, err := createApplication(appWithDefaults)
+	if err != nil {
+		ts.T().Fatalf("Failed to create application: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", testServerURL+"/applications/"+appID, nil)
+	if err != nil {
+		ts.T().Fatalf("Failed to create GET request: %v", err)
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		ts.T().Fatalf("Failed to send GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(resp.Body)
+		ts.T().Fatalf("Expected status 200, got %d. Response: %s", resp.StatusCode, string(responseBody))
+	}
+
+	var retrievedApp Application
+	err = json.NewDecoder(resp.Body).Decode(&retrievedApp)
+	if err != nil {
+		ts.T().Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Verify defaults were applied
+	if len(retrievedApp.InboundAuthConfig) > 0 && retrievedApp.InboundAuthConfig[0].OAuthAppConfig != nil {
+		oauthConfig := retrievedApp.InboundAuthConfig[0].OAuthAppConfig
+
+		ts.Assert().Equal([]string{"authorization_code"}, oauthConfig.GrantTypes, "Default grant_types should be ['authorization_code']")
+		ts.Assert().Equal([]string{"code"}, oauthConfig.ResponseTypes, "Default response_types should be ['code']")
+		ts.Assert().Equal("client_secret_basic", oauthConfig.TokenEndpointAuthMethod, "Default token_endpoint_auth_method should be 'client_secret_basic'")
+	}
+
+	err = deleteApplication(appID)
+	if err != nil {
+		ts.T().Logf("Failed to delete test application: %v", err)
+	}
+}
+
+// TestApplicationCreationWithInvalidTokenEndpointAuthMethod tests validation of invalid token_endpoint_auth_method values
+func (ts *ApplicationAPITestSuite) TestApplicationCreationWithInvalidTokenEndpointAuthMethod() {
+	appWithInvalidAuthMethod := Application{
+		Name:                      "App With Invalid Auth Method",
+		Description:               "Application to test invalid token endpoint auth method",
+		IsRegistrationFlowEnabled: false,
+		URL:                       "https://invalid.example.com",
+		LogoURL:                   "https://invalid.example.com/logo.png",
+		AuthFlowGraphID:           "auth_flow_config_basic",
+		RegistrationFlowGraphID:   "registration_flow_config_basic",
+		Certificate: &ApplicationCert{
+			Type:  "NONE",
+			Value: "",
+		},
+		InboundAuthConfig: []InboundAuthConfig{
+			{
+				Type: "oauth2",
+				OAuthAppConfig: &OAuthAppConfig{
+					ClientID:                "invalid_auth_app_client",
+					ClientSecret:            "invalid_auth_app_secret",
+					RedirectURIs:            []string{"http://localhost/invalid/callback"},
+					GrantTypes:              []string{"authorization_code"},
+					ResponseTypes:           []string{"code"},
+					TokenEndpointAuthMethod: "invalid_auth_method", // Invalid value
+					PKCERequired:            false,
+					PublicClient:            false,
+				},
+			},
+		},
+	}
+
+	_, err := createApplication(appWithInvalidAuthMethod)
+	if err == nil {
+		ts.T().Fatalf("Expected validation error for invalid token_endpoint_auth_method, but application was created successfully")
+	}
+
+	appWithEmptyAuthMethod := Application{
+		Name:                      "App With Empty Auth Method",
+		Description:               "Application to test empty token endpoint auth method",
+		IsRegistrationFlowEnabled: false,
+		URL:                       "https://empty.example.com",
+		LogoURL:                   "https://empty.example.com/logo.png",
+		AuthFlowGraphID:           "auth_flow_config_basic",
+		RegistrationFlowGraphID:   "registration_flow_config_basic",
+		Certificate: &ApplicationCert{
+			Type:  "NONE",
+			Value: "",
+		},
+		InboundAuthConfig: []InboundAuthConfig{
+			{
+				Type: "oauth2",
+				OAuthAppConfig: &OAuthAppConfig{
+					ClientID:                "empty_auth_app_client",
+					ClientSecret:            "empty_auth_app_secret",
+					RedirectURIs:            []string{"http://localhost/empty/callback"},
+					GrantTypes:              []string{"authorization_code"},
+					ResponseTypes:           []string{"code"},
+					TokenEndpointAuthMethod: "",
+					PKCERequired:            false,
+					PublicClient:            false,
+				},
+			},
+		},
+	}
+
+	appID, err := createApplication(appWithEmptyAuthMethod)
+	if err != nil {
+		ts.T().Fatalf("Failed to create application with empty token_endpoint_auth_method: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", testServerURL+"/applications/"+appID, nil)
+	if err != nil {
+		ts.T().Fatalf("Failed to create GET request: %v", err)
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		ts.T().Fatalf("Failed to send GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(resp.Body)
+		ts.T().Fatalf("Expected status 200, got %d. Response: %s", resp.StatusCode, string(responseBody))
+	}
+
+	var retrievedApp Application
+	err = json.NewDecoder(resp.Body).Decode(&retrievedApp)
+	if err != nil {
+		ts.T().Fatalf("Failed to decode response: %v", err)
+	}
+
+	if len(retrievedApp.InboundAuthConfig) > 0 && retrievedApp.InboundAuthConfig[0].OAuthAppConfig != nil {
+		oauthConfig := retrievedApp.InboundAuthConfig[0].OAuthAppConfig
+		ts.Assert().Equal("client_secret_basic", oauthConfig.TokenEndpointAuthMethod, "Empty token_endpoint_auth_method should get default 'client_secret_basic'")
+	}
+
+	err = deleteApplication(appID)
+	if err != nil {
+		ts.T().Logf("Failed to delete test application: %v", err)
+	}
+}
+
+// TestApplicationCreationWithPartialDefaults tests applications with some fields missing (partial defaults)
+func (ts *ApplicationAPITestSuite) TestApplicationCreationWithPartialDefaults() {
+	appWithPartialDefaults := Application{
+		Name:                      "App With Partial Defaults",
+		Description:               "Application to test partial default values",
+		IsRegistrationFlowEnabled: false,
+		URL:                       "https://partial.example.com",
+		LogoURL:                   "https://partial.example.com/logo.png",
+		AuthFlowGraphID:           "auth_flow_config_basic",
+		RegistrationFlowGraphID:   "registration_flow_config_basic",
+		Certificate: &ApplicationCert{
+			Type:  "NONE",
+			Value: "",
+		},
+		InboundAuthConfig: []InboundAuthConfig{
+			{
+				Type: "oauth2",
+				OAuthAppConfig: &OAuthAppConfig{
+					ClientID:     "partial_app_client",
+					ClientSecret: "partial_app_secret",
+					RedirectURIs: []string{"http://localhost/partial/callback"},
+					// GrantTypes missing - should get default
+					ResponseTypes:           []string{"code"},     // Explicitly set
+					TokenEndpointAuthMethod: "client_secret_post", // Explicitly set
+					PKCERequired:            false,
+					PublicClient:            false,
+				},
+			},
+		},
+	}
+
+	appID, err := createApplication(appWithPartialDefaults)
+	if err != nil {
+		ts.T().Fatalf("Failed to create application: %v", err)
+	}
+
+	// Verify that defaults were applied by getting the application
+	req, err := http.NewRequest("GET", testServerURL+"/applications/"+appID, nil)
+	if err != nil {
+		ts.T().Fatalf("Failed to create GET request: %v", err)
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		ts.T().Fatalf("Failed to send GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(resp.Body)
+		ts.T().Fatalf("Expected status 200, got %d. Response: %s", resp.StatusCode, string(responseBody))
+	}
+
+	var retrievedApp Application
+	err = json.NewDecoder(resp.Body).Decode(&retrievedApp)
+	if err != nil {
+		ts.T().Fatalf("Failed to decode response: %v", err)
+	}
+
+	if len(retrievedApp.InboundAuthConfig) > 0 && retrievedApp.InboundAuthConfig[0].OAuthAppConfig != nil {
+		oauthConfig := retrievedApp.InboundAuthConfig[0].OAuthAppConfig
+
+		ts.Assert().Equal([]string{"authorization_code"}, oauthConfig.GrantTypes, "Missing grant_types should get default ['authorization_code']")
+		ts.Assert().Equal([]string{"code"}, oauthConfig.ResponseTypes, "Explicitly set response_types should be preserved")
+		ts.Assert().Equal("client_secret_post", oauthConfig.TokenEndpointAuthMethod, "Explicitly set token_endpoint_auth_method should be preserved")
+	}
+
+	err = deleteApplication(appID)
+	if err != nil {
+		ts.T().Logf("Failed to delete test application: %v", err)
+	}
 }

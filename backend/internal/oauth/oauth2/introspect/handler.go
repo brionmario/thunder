@@ -28,20 +28,20 @@ import (
 	"github.com/asgardeo/thunder/internal/system/log"
 )
 
-// TokenIntrospectionHandler handles OAuth 2.0 token introspection requests.
-type TokenIntrospectionHandler struct {
+// tokenIntrospectionHandler handles OAuth 2.0 token introspection requests.
+type tokenIntrospectionHandler struct {
 	service TokenIntrospectionServiceInterface
 }
 
-// NewTokenIntrospectionHandler creates a new token introspection handler.
-func NewTokenIntrospectionHandler(introspectionService TokenIntrospectionServiceInterface) *TokenIntrospectionHandler {
-	return &TokenIntrospectionHandler{
+// newTokenIntrospectionHandler creates a new token introspection handler (internal use).
+func newTokenIntrospectionHandler(introspectionService TokenIntrospectionServiceInterface) *tokenIntrospectionHandler {
+	return &tokenIntrospectionHandler{
 		service: introspectionService,
 	}
 }
 
 // HandleIntrospect handles token introspection requests
-func (h *TokenIntrospectionHandler) HandleIntrospect(w http.ResponseWriter, r *http.Request) {
+func (h *tokenIntrospectionHandler) HandleIntrospect(w http.ResponseWriter, r *http.Request) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "TokenIntrospectionHandler"))
 
 	if err := r.ParseForm(); err != nil {

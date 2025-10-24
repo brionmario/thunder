@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package introspect_test
+package introspect
 
 import (
 	"crypto"
@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
-	"github.com/asgardeo/thunder/internal/oauth/oauth2/introspect"
 	"github.com/asgardeo/thunder/tests/mocks/jwtmock"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ import (
 type TokenIntrospectionServiceTestSuite struct {
 	suite.Suite
 	jwtServiceMock     *jwtmock.JWTServiceInterfaceMock
-	introspectService  introspect.TokenIntrospectionServiceInterface
+	introspectService  TokenIntrospectionServiceInterface
 	validToken         string
 	expiredToken       string
 	notBeforeToken     string
@@ -63,7 +62,7 @@ func (s *TokenIntrospectionServiceTestSuite) SetupTest() {
 		s.T().Fatal("Error generating RSA key:", err)
 	}
 
-	s.introspectService = introspect.NewTokenIntrospectionService(s.jwtServiceMock)
+	s.introspectService = newTokenIntrospectionService(s.jwtServiceMock)
 
 	s.validToken = s.createValidToken()
 	s.expiredToken = s.createExpiredToken()

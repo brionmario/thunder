@@ -29,20 +29,23 @@ import (
 	"github.com/asgardeo/thunder/internal/system/config"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
-	userservice "github.com/asgardeo/thunder/internal/user/service"
+	"github.com/asgardeo/thunder/internal/user"
 )
 
 // refreshTokenGrantHandler handles the refresh token grant type.
 type refreshTokenGrantHandler struct {
-	JWTService  jwt.JWTServiceInterface
-	UserService userservice.UserServiceInterface
+	jwtService  jwt.JWTServiceInterface
+	userService user.UserServiceInterface
 }
 
 // newRefreshTokenGrantHandler creates a new instance of RefreshTokenGrantHandler.
-func newRefreshTokenGrantHandler() RefreshTokenGrantHandlerInterface {
+func newRefreshTokenGrantHandler(
+	jwtService jwt.JWTServiceInterface,
+	userService user.UserServiceInterface,
+) RefreshTokenGrantHandlerInterface {
 	return &refreshTokenGrantHandler{
-		JWTService:  jwt.GetJWTService(),
-		UserService: userservice.GetUserService(),
+		jwtService:  jwtService,
+		userService: userService,
 	}
 }
 
@@ -125,10 +128,10 @@ func (h *refreshTokenGrantHandler) HandleGrant(tokenRequest *model.TokenRequest,
 		validityPeriod = oauthApp.Token.AccessToken.ValidityPeriod
 	}
 	if iss == "" {
-		iss = conf.OAuth.JWT.Issuer
+		iss = conf.JWT.Issuer
 	}
 	if validityPeriod == 0 {
-		validityPeriod = conf.OAuth.JWT.ValidityPeriod
+		validityPeriod = conf.JWT.ValidityPeriod
 	}
 
 	// Issue new access token
@@ -142,7 +145,7 @@ func (h *refreshTokenGrantHandler) HandleGrant(tokenRequest *model.TokenRequest,
 		}
 	}
 
-	accessToken, iat, err := h.JWTService.GenerateJWT(sub, aud, iss, validityPeriod, jwtClaims)
+	accessToken, iat, err := h.jwtService.GenerateJWT(sub, aud, iss, validityPeriod, jwtClaims)
 	if err != nil {
 		return nil, &model.ErrorResponse{
 			Error:            constants.ErrorServerError,
@@ -225,10 +228,10 @@ func (h *refreshTokenGrantHandler) IssueRefreshToken(tokenResponse *model.TokenR
 		validityPeriod = oauthApp.Token.AccessToken.ValidityPeriod
 	}
 	if iss == "" {
-		iss = config.GetThunderRuntime().Config.OAuth.JWT.Issuer
+		iss = config.GetThunderRuntime().Config.JWT.Issuer
 	}
 	if validityPeriod == 0 {
-		validityPeriod = config.GetThunderRuntime().Config.OAuth.JWT.ValidityPeriod
+		validityPeriod = config.GetThunderRuntime().Config.JWT.ValidityPeriod
 	}
 
 	// Generate a JWT token for the refresh token.
@@ -248,7 +251,7 @@ func (h *refreshTokenGrantHandler) IssueRefreshToken(tokenResponse *model.TokenR
 		claims["access_token_user_attributes"] = tokenResponse.AccessToken.UserAttributes
 	}
 
-	token, iat, err := h.JWTService.GenerateJWT(oauthApp.ClientID, oauthApp.ClientID, iss, validityPeriod, claims)
+	token, iat, err := h.jwtService.GenerateJWT(oauthApp.ClientID, oauthApp.ClientID, iss, validityPeriod, claims)
 	if err != nil {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorServerError,
@@ -272,7 +275,7 @@ func (h *refreshTokenGrantHandler) IssueRefreshToken(tokenResponse *model.TokenR
 
 // verifyRefreshToken verifies the refresh token using the server's public key.
 func (h *refreshTokenGrantHandler) verifyRefreshToken(refreshToken string, logger *log.Logger) *model.ErrorResponse {
-	if err := h.JWTService.VerifyJWT(refreshToken, "", ""); err != nil {
+	if err := h.jwtService.VerifyJWT(refreshToken, "", ""); err != nil {
 		logger.Error("Failed to verify refresh token signature", log.Error(err))
 		return &model.ErrorResponse{
 			Error:            constants.ErrorInvalidRequest,

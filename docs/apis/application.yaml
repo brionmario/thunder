@@ -114,13 +114,20 @@ paths:
                       - "refresh_token"
                     response_types:
                       - "code"
-                    token_endpoint_auth_methods:
-                      - "client_secret_basic"
+                    token_endpoint_auth_method: "client_secret_basic"
+                    pkce_required: false
+                    public_client: false
                     token:
+                      issuer: "thunder-oauth"
                       access_token:
-                        issuer: "thunder"
                         validity_period: 3600
                         user_attributes: ["email", "username"]
+                      id_token:
+                        validity_period: 3600
+                        user_attributes: ["email", "name", "given_name", "family_name"]
+                        scope_claims:
+                          profile: ["name", "family_name", "given_name", "picture"]
+                          employee: ["emp_id", "department"]
       responses:
         "201":
           description: Application created
@@ -158,13 +165,20 @@ paths:
                         - "refresh_token"
                       response_types:
                         - "code"
-                      token_endpoint_auth_methods:
-                        - "client_secret_basic"
+                      token_endpoint_auth_method: "client_secret_basic"
+                      pkce_required: false
+                      public_client: false
                       token:
+                        issuer: "thunder-oauth"
                         access_token:
-                          issuer: "thunder"
                           validity_period: 3600
                           user_attributes: ["email", "username"]
+                        id_token:
+                          validity_period: 1800
+                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          scope_claims:
+                            profile: ["name", "given_name", "family_name"]
+                            email: ["email", "email_verified"]
         "400":
           description: Bad request
           content:
@@ -252,13 +266,20 @@ paths:
                         - "refresh_token"
                       response_types:
                         - "code"
-                      token_endpoint_auth_methods:
-                        - "client_secret_basic"
+                      token_endpoint_auth_method: "client_secret_basic"
+                      pkce_required: false
+                      public_client: false
                       token:
+                        issuer: "thunder-oauth"
                         access_token:
-                          issuer: "thunder"
                           validity_period: 3600
                           user_attributes: ["email", "username"]
+                        id_token:
+                          validity_period: 1800
+                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          scope_claims:
+                            profile: ["name", "given_name", "family_name"]
+                            email: ["email", "email_verified"]
         "400":
           description: Bad request
           content:
@@ -340,13 +361,21 @@ paths:
                       - "client_credentials"
                     response_types:
                       - "code"
-                    token_endpoint_auth_methods:
-                      - "client_secret_basic"
+                    token_endpoint_auth_method: "client_secret_basic"
+                    pkce_required: false
+                    public_client: false
                     token:
                       access_token:
                         issuer: "thunder"
                         validity_period: 3600
                         user_attributes: ["email", "username"]
+                      id_token:
+                        issuer: "thunder-oidc"
+                        validity_period: 1800
+                        user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                        scope_claims:
+                          profile: ["name", "given_name", "family_name"]
+                          email: ["email", "email_verified"]
       responses:
         "200":
           description: Application updated
@@ -386,13 +415,20 @@ paths:
                         - "client_credentials"
                       response_types:
                         - "code"
-                      token_endpoint_auth_methods:
-                        - "client_secret_basic"
+                      token_endpoint_auth_method: "client_secret_basic"
+                      pkce_required: false
+                      public_client: false
                       token:
+                        issuer: "thunder-oauth"
                         access_token:
-                          issuer: "thunder"
                           validity_period: 3600
                           user_attributes: ["email", "username"]
+                        id_token:
+                          validity_period: 1800
+                          user_attributes: ["email", "email_verified", "name", "given_name", "family_name"]
+                          scope_claims:
+                            profile: ["name", "given_name", "family_name"]
+                            email: ["email", "email_verified"]
         "400":
           description: Bad request
           content:
@@ -710,6 +746,30 @@ components:
           description: The user attributes to include in the token.
           example: ["email", "username"]
 
+    IDTokenConfig:
+      type: object
+      properties:
+        validity_period:
+          type: integer
+          description: The validity period of the ID token in seconds. If not specified, uses the same validity as access token.
+          example: 3600
+        user_attributes:
+          type: array
+          items:
+            type: string
+          description: The user attributes to include in the ID token. Only claims requested by scopes AND listed here will be included.
+          example: ["email", "name", "given_name", "family_name"]
+        scope_claims:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Custom scope-to-claims mapping. Overrides default OIDC scope claims or defines custom scopes.
+          example:
+            profile: ["name", "family_name", "given_name", "picture"]
+            employee: ["emp_id", "department"]
+
     Certificate:
       type: object
       properties:
@@ -769,31 +829,42 @@ components:
           items:
             type: string
             enum: ["authorization_code", "client_credentials", "refresh_token", "implicit", "password"]
-          description: A list of grant types supported by the OAuth application.
+          description: A list of grant types supported by the OAuth application. Defaults to ["authorization_code"] if not specified.
           example: ["authorization_code", "refresh_token"]
         response_types:
           type: array
           items:
             type: string
             enum: ["code", "token"]
-          description: A list of response types supported by the OAuth application.
+          description: A list of response types supported by the OAuth application. Defaults to ["code"] if not specified.
           example: ["code"]
-        token_endpoint_auth_methods:
-          type: array
-          items:
-            type: string
-            enum: ["client_secret_basic", "client_secret_post", "none"]
-          description: A list of token endpoint authentication methods supported by the OAuth application.
-          example: ["client_secret_basic"]
+        token_endpoint_auth_method:
+          type: string
+          enum: ["client_secret_basic", "client_secret_post", "none"]
+          description: The token endpoint authentication method for the OAuth application. Defaults to "client_secret_basic" if not specified.
+          example: "client_secret_basic"
         pkce_required:
           type: boolean
           description: Whether PKCE (Proof Key for Code Exchange) is required for this application.
-          example: true
+          example: false
+          default: false
+        public_client:
+          type: boolean
+          description: Whether the application is a public client (Mobile apps, SPAs, etc.), which cannot store secrets securely.
+          example: false
+          default: false
         token:
           type: object
           properties:
+            issuer:
+              type: string
+              description: |
+                The issuer for both access token and ID token.
+              example: "thunder-oauth"
             access_token:
               $ref: '#/components/schemas/TokenConfig'
+            id_token:
+              $ref: '#/components/schemas/IDTokenConfig'
 
     OAuthAppConfigComplete:
       type: object
@@ -804,7 +875,7 @@ components:
           example: "myapp_client_id"
         client_secret:
           type: string
-          description: The client secret for the OAuth application.
+          description: The client secret for the OAuth application. Omitted for public clients.
           example: "myapp_client_secret"
         redirect_uris:
           type: array
@@ -818,31 +889,42 @@ components:
           items:
             type: string
             enum: ["authorization_code", "client_credentials", "refresh_token", "implicit", "password"]
-          description: A list of grant types supported by the OAuth application.
+          description: A list of grant types supported by the OAuth application. Defaults to ["authorization_code"] if not specified.
           example: ["authorization_code", "refresh_token"]
         response_types:
           type: array
           items:
             type: string
             enum: ["code", "token"]
-          description: A list of response types supported by the OAuth application.
+          description: A list of response types supported by the OAuth application. Defaults to ["code"] if not specified.
           example: ["code"]
-        token_endpoint_auth_methods:
-          type: array
-          items:
-            type: string
-            enum: ["client_secret_basic", "client_secret_post", "none"]
-          description: A list of token endpoint authentication methods supported by the OAuth application.
-          example: ["client_secret_basic"]
+        token_endpoint_auth_method:
+          type: string
+          enum: ["client_secret_basic", "client_secret_post", "none"]
+          description: The token endpoint authentication method for the OAuth application. Defaults to "client_secret_basic" if not specified.
+          example: "client_secret_basic"
         pkce_required:
           type: boolean
           description: Whether PKCE (Proof Key for Code Exchange) is required for this application.
-          example: true
+          example: false
+          default: false
+        public_client:
+          type: boolean
+          description: Whether the application is a public client (Mobile apps, SPAs, etc.), which cannot store secrets securely.
+          example: false
+          default: false
         token:
           type: object
           properties:
+            issuer:
+              type: string
+              description: |
+                The issuer for both access token and ID token.
+              example: "thunder-oauth"
             access_token:
               $ref: '#/components/schemas/TokenConfig'
+            id_token:
+              $ref: '#/components/schemas/IDTokenConfig'
 
     Error:
       type: object

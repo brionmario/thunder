@@ -20,8 +20,7 @@
 package model
 
 import (
-	"github.com/asgardeo/thunder/internal/application/constants"
-	certconst "github.com/asgardeo/thunder/internal/cert/constants"
+	"github.com/asgardeo/thunder/internal/cert"
 )
 
 // TokenConfig represents the token configuration structure.
@@ -31,9 +30,18 @@ type TokenConfig struct {
 	UserAttributes []string `json:"user_attributes"`
 }
 
-// OAuthTokenConfig represents the OAuth token configuration structure with access_token wrapper.
+// IDTokenConfig represents the ID token configuration structure.
+type IDTokenConfig struct {
+	ValidityPeriod int64               `json:"validity_period"`
+	UserAttributes []string            `json:"user_attributes"`
+	ScopeClaims    map[string][]string `json:"scope_claims,omitempty"`
+}
+
+// OAuthTokenConfig represents the OAuth token configuration structure with access_token and id_token wrappers.
 type OAuthTokenConfig struct {
-	AccessToken *TokenConfig `json:"access_token,omitempty"`
+	Issuer      string         `json:"issuer,omitempty"`
+	AccessToken *TokenConfig   `json:"access_token,omitempty"`
+	IDToken     *IDTokenConfig `json:"id_token,omitempty"`
 }
 
 // ApplicationDTO represents the data transfer object for application service operations.
@@ -84,21 +92,21 @@ type ApplicationProcessedDTO struct {
 // InboundAuthConfigDTO represents the data transfer object for inbound authentication configuration.
 // TODO: Need to refactor when supporting other/multiple inbound auth types.
 type InboundAuthConfigDTO struct {
-	Type           constants.InboundAuthType `json:"type"`
-	OAuthAppConfig *OAuthAppConfigDTO        `json:"oauth_app_config,omitempty"`
+	Type           InboundAuthType    `json:"type"`
+	OAuthAppConfig *OAuthAppConfigDTO `json:"oauth_app_config,omitempty"`
 }
 
 // InboundAuthConfigProcessedDTO represents the processed data transfer object for inbound authentication
 // configuration.
 type InboundAuthConfigProcessedDTO struct {
-	Type           constants.InboundAuthType   `json:"type"`
+	Type           InboundAuthType             `json:"type"`
 	OAuthAppConfig *OAuthAppConfigProcessedDTO `json:"oauth_app_config,omitempty"`
 }
 
 // ApplicationCertificate represents the certificate structure in the application request response.
 type ApplicationCertificate struct {
-	Type  certconst.CertificateType `json:"type"`
-	Value string                    `json:"value"`
+	Type  cert.CertificateType `json:"type"`
+	Value string               `json:"value"`
 }
 
 // ApplicationRequest represents the request structure for creating or updating an application.
@@ -167,12 +175,12 @@ type ApplicationListResponse struct {
 
 // InboundAuthConfig represents the structure for inbound authentication configuration.
 type InboundAuthConfig struct {
-	Type           constants.InboundAuthType `json:"type"`
-	OAuthAppConfig *OAuthAppConfig           `json:"config,omitempty"`
+	Type           InboundAuthType `json:"type"`
+	OAuthAppConfig *OAuthAppConfig `json:"config,omitempty"`
 }
 
 // InboundAuthConfigComplete represents the complete structure for inbound authentication configuration.
 type InboundAuthConfigComplete struct {
-	Type           constants.InboundAuthType `json:"type"`
-	OAuthAppConfig *OAuthAppConfigComplete   `json:"config,omitempty"`
+	Type           InboundAuthType         `json:"type"`
+	OAuthAppConfig *OAuthAppConfigComplete `json:"config,omitempty"`
 }

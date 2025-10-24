@@ -26,7 +26,11 @@ PROJECT_DIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))/backen
 PROJECT_BIN_DIR := $(PROJECT_DIR)/bin
 TOOL_BIN ?= $(PROJECT_BIN_DIR)/tools
 GOLANGCI_LINT ?= $(TOOL_BIN)/golangci-lint
+MOCKERY ?= $(TOOL_BIN)/mockery
+
+# Tools versions
 GOLANGCI_LINT_VERSION ?= v1.64.8
+MOCKERY_VERSION ?= v3.5.5
 
 $(TOOL_BIN):
 	mkdir -p $(TOOL_BIN)
@@ -44,10 +48,13 @@ clean_all:
 clean:
 	./build.sh clean $(OS) $(ARCH)
 
-build: build_backend build_samples
+build: build_backend build_frontend build_samples
 
 build_backend:
 	./build.sh build_backend $(OS) $(ARCH)
+
+build_frontend:
+	./build.sh build_frontend
 
 package_samples:
 	./build.sh package_samples $(OS) $(ARCH)
@@ -70,9 +77,19 @@ build_with_coverage:
 	@echo "================================================================"
 	./build.sh test_unit $(OS) $(ARCH)
 	ENABLE_COVERAGE=true ./build.sh build_backend $(OS) $(ARCH)
+	./build.sh build_frontend
 	./build.sh test_integration $(OS) $(ARCH)
 	./build.sh merge_coverage $(OS) $(ARCH)
 	@echo "================================================================"
+
+build_with_coverage_only:
+	@echo "================================================================"
+	@echo "Building with coverage instrumentation (unit tests only)..."
+	@echo "================================================================"
+	./build.sh test_unit $(OS) $(ARCH)
+	ENABLE_COVERAGE=true ./build.sh build_backend $(OS) $(ARCH)
+	@echo "================================================================"
+
 
 run:
 	./build.sh run $(OS) $(ARCH)
@@ -95,19 +112,25 @@ docker-build-multiarch-push:
 lint: golangci-lint
 	cd backend && $(GOLANGCI_LINT) run ./...
 
+mockery: install-mockery
+	cd backend && $(MOCKERY) --config .mockery.public.yml
+	cd backend && $(MOCKERY) --config .mockery.private.yml
+
 help:
 	@echo "Makefile targets:"
 	@echo "  all                           - Clean, build, and test the project."
 	@echo "  backend                       - Clean, build, and test only the backend."
 	@echo "  clean                         - Remove build artifacts."
 	@echo "  clean_all                     - Remove all build artifacts including distribution files."
-	@echo "  build                         - Build the Go project and frontend, then package."
+	@echo "  build                         - Build Thunder (backend + frontend + samples)."
 	@echo "  build_backend                 - Build the backend Go application."
+	@echo "  build_frontend                - Build the frontend applications."
 	@echo "  package_samples               - Package sample applications."
 	@echo "  build_samples                 - Build sample applications."
 	@echo "  test_unit                     - Run unit tests."
 	@echo "  test_integration              - Run integration tests."
 	@echo "  build_with_coverage  		   - Build with coverage flags, run unit and integration tests, and generate combined coverage report."
+	@echo "  build_with_coverage_only      - Build with coverage instrumentation (unit tests only, no integration tests)."
 	@echo "  test                          - Run all tests (unit and integration)."
 	@echo "  run                           - Build and run the application locally."
 	@echo "  docker-build                  - Build single-arch Docker image with version tag."
@@ -116,13 +139,15 @@ help:
 	@echo "  docker-build-multiarch-latest - Build multi-arch Docker image with latest tag."
 	@echo "  docker-build-multiarch-push   - Build and push multi-arch images to registry."
 	@echo "  lint                          - Run golangci-lint on the project."
+	@echo "  mockery                       - Generate mocks for unit tests using mockery."
 	@echo "  help                          - Show this help message."
 
-.PHONY: all prepare clean clean_all build build_samples package_samples run
+.PHONY: all prepare clean clean_all build build_backend build_frontend build_samples package_samples run
 .PHONY: docker-build docker-build-latest docker-build-multiarch 
 .PHONY: docker-build-multiarch-latest docker-build-multiarch-push
-.PHONY: test_unit test_integration build_with_coverage test
-.PHONY: lint help go_install_tool golangci-lint
+.PHONY: test_unit test_integration build_with_coverage build_with_coverage_only test
+.PHONY: help go_install_tool
+.PHONY: lint golangci-lint mockery install-mockery
 
 define go_install_tool
 	cd /tmp && \
@@ -133,3 +158,8 @@ golangci-lint: $(GOLANGCI_LINT)
 
 $(GOLANGCI_LINT): $(TOOL_BIN)
 	$(call go_install_tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+install-mockery: $(MOCKERY)
+
+$(MOCKERY): $(TOOL_BIN)
+	$(call go_install_tool,$(MOCKERY),github.com/vektra/mockery/v3,$(MOCKERY_VERSION))

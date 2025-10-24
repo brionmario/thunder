@@ -33,7 +33,7 @@ import (
 	"github.com/asgardeo/thunder/internal/system/config"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/tests/mocks/jwtmock"
-	usersvcmock "github.com/asgardeo/thunder/tests/mocks/user/servicemock"
+	usersvcmock "github.com/asgardeo/thunder/tests/mocks/usermock"
 )
 
 type RefreshTokenGrantHandlerTestSuite struct {
@@ -57,10 +57,10 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 
 	// Initialize Thunder Runtime config with basic test config
 	testConfig := &config.Config{
+		JWT: config.JWTConfig{
+			ValidityPeriod: 3600,
+		},
 		OAuth: config.OAuthConfig{
-			JWT: config.JWTConfig{
-				ValidityPeriod: 3600,
-			},
 			RefreshToken: config.RefreshTokenConfig{
 				ValidityPeriod: 86400,
 				RenewOnGrant:   false,
@@ -73,16 +73,15 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 	suite.mockUserService = usersvcmock.NewUserServiceInterfaceMock(suite.T())
 
 	suite.handler = &refreshTokenGrantHandler{
-		JWTService:  suite.mockJWTService,
-		UserService: suite.mockUserService,
+		jwtService:  suite.mockJWTService,
+		userService: suite.mockUserService,
 	}
 
 	suite.oauthApp = &appmodel.OAuthAppConfigProcessedDTO{
-		ClientID:           "test-client-id",
-		HashedClientSecret: "hashed-secret",
-		GrantTypes:         []constants.GrantType{constants.GrantTypeRefreshToken},
-		TokenEndpointAuthMethod: []constants.TokenEndpointAuthMethod{
-			constants.TokenEndpointAuthMethodClientSecretPost},
+		ClientID:                "test-client-id",
+		HashedClientSecret:      "hashed-secret",
+		GrantTypes:              []constants.GrantType{constants.GrantTypeRefreshToken},
+		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		Token: &appmodel.OAuthTokenConfig{
 			AccessToken: &appmodel.TokenConfig{
 				UserAttributes: []string{"email", "username"},
@@ -115,7 +114,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TearDownTest() {
 }
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestNewRefreshTokenGrantHandler() {
-	handler := newRefreshTokenGrantHandler()
+	handler := newRefreshTokenGrantHandler(suite.mockJWTService, suite.mockUserService)
 	assert.NotNil(suite.T(), handler)
 	assert.Implements(suite.T(), (*RefreshTokenGrantHandlerInterface)(nil), handler)
 }

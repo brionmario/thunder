@@ -50,12 +50,14 @@ var (
 	extractedProductHome string
 	serverCmd            *exec.Cmd
 	isInitialized        bool
+	dbType				 string
 )
 
 // InitializeTestContext initializes the package-level variables for server configuration.
-func InitializeTestContext(port string, zipPattern string) {
+func InitializeTestContext(port string, zipPattern string, databaseType string) {
 	serverPort = port
 	zipFilePattern = zipPattern
+	dbType = databaseType
 	isInitialized = true
 }
 
@@ -180,10 +182,14 @@ func ReplaceResources(zipFilePattern string) error {
 		return fmt.Errorf("failed to replace deployment.yaml: %v", err)
 	}
 
-	destPath = filepath.Join(extractedProductHome, "dbscripts")
-	err = copyDirectory(TestDatabaseSchemaDirectory, destPath)
-	if err != nil {
-		return fmt.Errorf("failed to replace database schema files: %v", err)
+	if dbType == "postgres" {
+		log.Println("Skipping replacement of dbscripts for PostgreSQL.")
+	} else {
+		destPath = filepath.Join(extractedProductHome, "dbscripts")
+		err = copyDirectory(TestDatabaseSchemaDirectory, destPath)
+		if err != nil {
+			return fmt.Errorf("failed to replace database schema files: %v", err)
+		}
 	}
 
 	// copy graphs from the target directory to the product home
@@ -252,6 +258,12 @@ func copyDirectory(src, dest string) error {
 
 func RunInitScript(zipFilePattern string) error {
 	log.Println("Running init script...")
+
+	// Skip database initialization for PostgreSQL
+	if dbType == "postgres" {  
+		log.Println("Skipping database initialization for PostgreSQL (already initialized in workflow)")  
+		return nil  
+	}  
 
 	cwd, err := os.Getwd()
 	if err != nil {

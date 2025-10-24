@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub last commit](https://img.shields.io/github/last-commit/asgardeo/thunder.svg)](https://github.com/asgardeo/thunder/commits/main)
 [![GitHub issues](https://img.shields.io/github/issues/asgardeo/thunder.svg)](https://github.com/asgardeo/thunder/issues)
+[![codecov.io](https://codecov.io/github/asgardeo/thunder/coverage.svg?branch=main)](https://codecov.io/github/asgardeo/thunder?branch=main)
 
 Thunder is a modern, open-source identity management service designed for teams building secure, customizable authentication experiences across applications, services, and AI agents. It enables developers to design and orchestrate login, registration, and recovery flows using a flexible identity flow designer.
 
@@ -95,6 +96,7 @@ Follow these steps to run WSO2 Thunder using Docker.
     ```bash
     docker run --rm \
       -p 8090:8090 \
+      -p 9090:9090 \
       ghcr.io/asgardeo/thunder:latest
     ```
 
@@ -151,6 +153,7 @@ To quickly get started with Thunder, you can use the sample app provided with th
         "auth_flow_graph_id": "auth_flow_config_basic",
         "registration_flow_graph_id": "registration_flow_config_basic",
         "is_registration_flow_enabled": true,
+        "user_attributes": ["given_name","family_name","email","groups"],
         "inbound_auth_config": [{
             "type": "oauth2",
             "config": {
@@ -159,8 +162,26 @@ To quickly get started with Thunder, you can use the sample app provided with th
                 "redirect_uris": ["https://localhost:3000"],
                 "grant_types": ["authorization_code", "client_credentials"],
                 "response_types": ["code"],
-                "token_endpoint_auth_methods": ["client_secret_basic", "client_secret_post"],
-                "pkce_required": true
+                "token_endpoint_auth_method": "client_secret_basic",
+                "pkce_required": false,
+                "public_client": false,
+                "token": {
+                    "issuer": "thunder",
+                    "access_token": {
+                        "validity_period": 3600,
+                        "user_attributes": ["given_name","family_name","email","groups"]
+                    },
+                    "id_token": {
+                        "validity_period": 3600,
+                        "user_attributes": ["given_name","family_name","email","groups"],
+                        "scope_claims": {
+                            "profile": ["name","given_name","family_name","picture"],
+                            "email": ["email","email_verified"],
+                            "phone": ["phone_number","phone_number_verified"],
+                            "group": ["groups"]
+                        }
+                    }
+                }
             }
         }]
     }'
@@ -238,11 +259,9 @@ To try out the Client Credentials flow, follow these steps:
                     "grant_types": [
                         "client_credentials"
                     ],
-                    "token_endpoint_auth_methods": [
-                        "client_secret_basic",
-                        "client_secret_post"
-                    ],
-                    "pkce_required": true
+                    "token_endpoint_auth_method": "client_secret_basic",
+                    "pkce_required": false,
+                    "public_client": false
                 }
             }
         ]
@@ -300,11 +319,9 @@ To try out the Client Credentials flow, follow these steps:
                     "grant_types": [
                         "client_credentials"
                     ],
-                    "token_endpoint_auth_methods": [
-                        "client_secret_basic",
-                        "client_secret_post"
-                    ],
-                    "pkce_required": true
+                    "token_endpoint_auth_method": "client_secret_basic",
+                    "pkce_required": false,
+                    "public_client": false
                 }
             }
         ]
@@ -379,11 +396,49 @@ To try out the Client Credentials flow, follow these steps:
                     "response_types": [
                         "code"
                     ],
-                    "token_endpoint_auth_methods": [
-                        "client_secret_basic",
-                        "client_secret_post"
-                    ],
-                    "pkce_required": true
+                    "token_endpoint_auth_method": "client_secret_basic",
+                    "pkce_required": false,
+                    "public_client": false,
+                    "token": {
+                        "issuer": "thunder",
+                        "access_token": {
+                            "validity_period": 3600,
+                            "user_attributes": [
+                                "given_name",
+                                "family_name",
+                                "email",
+                                "groups"
+                            ]
+                        },
+                        "id_token": {
+                            "validity_period": 3600,
+                            "user_attributes": [
+                                "given_name",
+                                "family_name",
+                                "email",
+                                "groups"
+                            ],
+                            "scope_claims": {
+                                "email": [
+                                    "email",
+                                    "email_verified"
+                                ],
+                                "group": [
+                                    "groups"
+                                ],
+                                "phone": [
+                                    "phone_number",
+                                    "phone_number_verified"
+                                ],
+                                "profile": [
+                                    "name",
+                                    "given_name",
+                                    "family_name",
+                                    "picture"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         ]
@@ -414,8 +469,8 @@ To try out the Client Credentials flow, follow these steps:
             "username": "thor",
             "password": "<password>",
             "email": "thor@thunder.sky",
-            "firstName": "Thor",
-            "lastName": "Odinson",
+            "given_name": "Thor",
+            "family_name": "Odinson",
             "age": 1534,
             "abilities": [
                 "strength",
@@ -502,11 +557,9 @@ To try out the Client Credentials flow, follow these steps:
                     "response_types": [
                         "code"
                     ],
-                    "token_endpoint_auth_methods": [
-                        "client_secret_basic",
-                        "client_secret_post"
-                    ],
-                    "pkce_required": true
+                    "token_endpoint_auth_method": "client_secret_basic",
+                    "pkce_required": false,
+                    "public_client": false
                 }
             }
         ]
@@ -599,8 +652,8 @@ curl -kL https://localhost:8090/oauth2/jwks
             "username": "thor",
             "password": "<password>",
             "email": "thor@thunder.sky",
-            "firstName": "Thor",
-            "lastName": "Odinson",
+            "given_name": "Thor",
+            "family_name": "Odinson",
             "age": 1534,
             "abilities": [
                 "strength",
@@ -1020,8 +1073,8 @@ curl -kL https://localhost:8090/oauth2/jwks
             "username": "thor",
             "password": "<password>",
             "email": "thor@thunder.sky",
-            "firstName": "Thor",
-            "lastName": "Odinson",
+            "given_name": "Thor",
+            "family_name": "Odinson",
             "mobileNumber": "+94xxxxxxxxx"
         }
     }'
@@ -1816,6 +1869,12 @@ make test_unit
 make test_integration
 ```
 
+**Note:** This command will run integration tests on an already built product. If you need to build the product before running integration tests, use:
+
+```bash
+make build_backend test_integration
+```
+
 #### Run Tests with Coverage
 
 ```bash
@@ -1834,39 +1893,39 @@ This will build the server with coverage instrumentation, run tests, and generat
 <details>
 <summary><h3>Running with PostgreSQL Database</h3></summary>
 
-#### Step 1: Start PostgreSQL
+#### Step 1: Start and Initialize PostgreSQL
 
-- Create a Docker container for PostgreSQL with `thunderdb` database.
+1. Navigate to local-development directory
 
-  ```bash
-  docker run -d -p 5432:5432 --name postgres \
-    -e POSTGRES_USER=asgthunder \
-    -e POSTGRES_PASSWORD=asgthunder \
-    -e POSTGRES_DB=thunderdb \
-    postgres
-  ```
+```bash
+cd install/local-development
+```
 
-- Create the `runtimedb` in the same PostgreSQL container.
+2. Start PostgreSQL Database in background
 
-  ```bash
-  docker exec -it postgres psql -U asgthunder -d thunderdb -c "CREATE DATABASE runtimedb;"
-  ```
+```bash
+docker compose up -d 
+```
 
-#### Step 2: Initialize the Database
+3. View PostgreSQL Database logs
 
-- Populate the `thunderdb` database with the required tables and data.
+```bash
+docker compose logs -f
+```
 
-  ```bash
-  docker exec -i postgres psql -U asgthunder -d thunderdb < backend/dbscripts/thunderdb/postgres.sql
-  ```
+4. Stop PostgreSQL Database
 
-- Populate the `runtimedb` database with the required tables and data.
+```bash
+docker compose down
+```
 
-  ```bash
-  docker exec -i postgres psql -U asgthunder -d thunderdb < backend/dbscripts/runtimedb/postgres.sql
-  ```
+- Stop PostgreSQL Database and delete all data 
 
-#### Step 3: Configure Thunder to Use PostgreSQL
+```bash
+docker compose down -v
+```
+
+#### Step 2: Configure Thunder to Use PostgreSQL
 
 1. Open the `backend/cmd/server/repository/conf/deployment.yaml` file.
 2. Update the `database` section to point to the PostgreSQL database:
@@ -1891,7 +1950,7 @@ This will build the server with coverage instrumentation, run tests, and generat
             sslmode: "disable"
     ```
 
-#### Step 4: Run the Product
+#### Step 3: Run the Product
 
    ```bash
    make run
@@ -1904,6 +1963,10 @@ The product will now use the PostgreSQL database for its operations.
 </details>
 
 ---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=asgardeo/thunder&type=date&legend=top-left)](https://www.star-history.com/#asgardeo/thunder&type=date&legend=top-left)
 
 ## License
 

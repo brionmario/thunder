@@ -20,7 +20,6 @@ package model
 
 // OAuthParameters represents the parameters required for OAuth2 authorization.
 type OAuthParameters struct {
-	SessionDataKey      string
 	State               string
 	ClientID            string
 	RedirectURI         string

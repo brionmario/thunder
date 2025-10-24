@@ -37,7 +37,7 @@ deployment:
     # -- Container image digest
     digest: ""
     # -- Container image tag. Either "tag" or "digest" should be defined
-    tag: "0.7.0"
+    tag: "0.10.0"
     pullPolicy: "Always"
   startupProbe:
     initialDelaySeconds: 1
@@ -169,11 +169,13 @@ configuration:
     evictionPolicy: "LRU"
     cleanupInterval: 300
 
+  # Token Configuration
+  jwt:
+    issuer: "thunder"
+    validityPeriod: 3600
+
   # OAuth configuration
   oauth:
-    jwt:
-      issuer: "thunder"
-      validityPeriod: 3600
     refreshToken:
       renewOnGrant: false
       validityPeriod: 86400

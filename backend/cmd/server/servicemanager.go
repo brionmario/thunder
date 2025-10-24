@@ -22,12 +22,20 @@ package main
 import (
 	"net/http"
 
-	"github.com/asgardeo/thunder/internal/flow"
+	"github.com/asgardeo/thunder/internal/application"
+	"github.com/asgardeo/thunder/internal/cert"
+	"github.com/asgardeo/thunder/internal/flow/flowexec"
+	"github.com/asgardeo/thunder/internal/flow/flowmgt"
+	"github.com/asgardeo/thunder/internal/group"
 	"github.com/asgardeo/thunder/internal/idp"
 	"github.com/asgardeo/thunder/internal/notification"
+	"github.com/asgardeo/thunder/internal/oauth"
+	"github.com/asgardeo/thunder/internal/ou"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/system/services"
+	"github.com/asgardeo/thunder/internal/user"
+	"github.com/asgardeo/thunder/internal/userschema"
 )
 
 // registerServices registers all the services with the provided HTTP multiplexer.
@@ -40,8 +48,24 @@ func registerServices(mux *http.ServeMux) {
 		logger.Fatal("Failed to load private key", log.Error(err))
 	}
 
+	ouService := ou.Initialize(mux)
+	userSchemaService := userschema.Initialize(mux)
+	userService := user.Initialize(mux, ouService, userSchemaService)
+	_ = group.Initialize(mux, ouService, userService)
+
 	_ = idp.Initialize(mux)
 	_ = notification.Initialize(mux, jwtService)
+	flowMgtService, err := flowmgt.Initialize()
+	if err != nil {
+		logger.Fatal("Failed to initialize FlowMgtService", log.Error(err))
+	}
+	certservice, _ := cert.Initialize()
+	applicationService := application.Initialize(mux, certservice)
+
+	_ = flowexec.Initialize(mux, flowMgtService, applicationService)
+
+	// Initialize OAuth services.
+	oauth.Initialize(mux, applicationService, userService, jwtService)
 
 	// TODO: Legacy way of initializing services. These need to be refactored in the future aligning to the
 	// dependency injection pattern used above.
@@ -49,41 +73,6 @@ func registerServices(mux *http.ServeMux) {
 	// Register the health service.
 	services.NewHealthCheckService(mux)
 
-	// Register the token service.
-	services.NewTokenService(mux)
-
-	// Register the authorization service.
-	services.NewAuthorizationService(mux)
-
-	// Register the JWKS service.
-	services.NewJWKSAPIService(mux)
-
-	// Register the introspection service.
-	services.NewIntrospectionAPIService(mux)
-
-	// Register the Organization Unit service.
-	services.NewOrganizationUnitService(mux)
-
-	// Register the User service.
-	services.NewUserService(mux)
-
-	// Register the User Schema service.
-	services.NewUserSchemaService(mux)
-
-	// Register the Group service.
-	services.NewGroupService(mux)
-
-	// Register the Application service.
-	services.NewApplicationService(mux)
-
-	// Register the flow execution service.
-	services.NewFlowExecutionService(mux)
-
 	// Register the authentication service.
 	services.NewAuthenticationService(mux)
-
-	svc := flow.GetFlowExecService()
-	if err := svc.Init(); err != nil {
-		logger.Fatal("Failed to initialize flow service", log.Error(err))
-	}
 }

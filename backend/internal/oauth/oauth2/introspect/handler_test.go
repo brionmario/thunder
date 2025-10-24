@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package introspect_test
+package introspect
 
 import (
 	"errors"
@@ -27,8 +27,6 @@ import (
 	"testing"
 
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
-	"github.com/asgardeo/thunder/internal/oauth/oauth2/introspect"
-	"github.com/asgardeo/thunder/tests/mocks/oauth/oauth2/introspectmock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -36,8 +34,8 @@ import (
 
 type TokenIntrospectionHandlerTestSuite struct {
 	suite.Suite
-	introspectionServiceMock *introspectmock.TokenIntrospectionServiceInterfaceMock
-	handler                  *introspect.TokenIntrospectionHandler
+	introspectionServiceMock *TokenIntrospectionServiceInterfaceMock
+	handler                  *tokenIntrospectionHandler
 }
 
 func TestTokenIntrospectionHandlerTestSuite(t *testing.T) {
@@ -45,8 +43,8 @@ func TestTokenIntrospectionHandlerTestSuite(t *testing.T) {
 }
 
 func (s *TokenIntrospectionHandlerTestSuite) SetupTest() {
-	s.introspectionServiceMock = introspectmock.NewTokenIntrospectionServiceInterfaceMock(s.T())
-	s.handler = introspect.NewTokenIntrospectionHandler(s.introspectionServiceMock)
+	s.introspectionServiceMock = NewTokenIntrospectionServiceInterfaceMock(s.T())
+	s.handler = newTokenIntrospectionHandler(s.introspectionServiceMock)
 }
 
 func (s *TokenIntrospectionHandlerTestSuite) TestHandleIntrospect_ParseFormError() {
@@ -98,7 +96,7 @@ func (s *TokenIntrospectionHandlerTestSuite) TestHandleIntrospect_Success_Active
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Setup the mock to return a valid active token response
-	activeResponse := &introspect.IntrospectResponse{
+	activeResponse := &IntrospectResponse{
 		Active:    true,
 		Scope:     "openid profile",
 		ClientID:  "client123",
@@ -147,7 +145,7 @@ func (s *TokenIntrospectionHandlerTestSuite) TestHandleIntrospect_Success_Encode
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Setup the mock to return a valid active token response
-	activeResponse := &introspect.IntrospectResponse{
+	activeResponse := &IntrospectResponse{
 		Active: true,
 	}
 	s.introspectionServiceMock.On("IntrospectToken", "valid-token", "").Return(activeResponse, nil)
@@ -166,7 +164,7 @@ func (s *TokenIntrospectionHandlerTestSuite) TestHandleIntrospect_Success_Inacti
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Setup the mock to return an inactive token response
-	inactiveResponse := &introspect.IntrospectResponse{
+	inactiveResponse := &IntrospectResponse{
 		Active: false,
 	}
 	s.introspectionServiceMock.On("IntrospectToken", "invalid-token", "").Return(inactiveResponse, nil)

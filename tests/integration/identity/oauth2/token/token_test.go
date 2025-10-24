@@ -41,8 +41,9 @@ const (
 
 type TokenTestSuite struct {
 	suite.Suite
-	applicationID string
-	client        *http.Client
+	applicationIDBasic string
+	applicationIDPost  string
+	client             *http.Client
 }
 
 func TestTokenTestSuite(t *testing.T) {
@@ -56,6 +57,16 @@ func (ts *TokenTestSuite) SetupSuite() {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
+
+	// Create applications for different authentication methods
+	ts.applicationIDBasic = ts.createTestApplication("client_secret_basic")
+	ts.applicationIDPost = ts.createTestApplication("client_secret_post")
+}
+
+func (ts *TokenTestSuite) createTestApplication(authMethod string) string {
+	// Create a unique application name and client ID based on auth method
+	appName := appName + "_" + authMethod
+	clientId := clientId + "_" + authMethod
 
 	// Create a new application for testing
 	app := map[string]interface{}{
@@ -76,10 +87,7 @@ func (ts *TokenTestSuite) SetupSuite() {
 						"authorization_code",
 						"refresh_token",
 					},
-					"token_endpoint_auth_methods": []string{
-						"client_secret_basic",
-						"client_secret_post",
-					},
+					"token_endpoint_auth_method": authMethod,
 				},
 			},
 		},
@@ -114,17 +122,24 @@ func (ts *TokenTestSuite) SetupSuite() {
 		ts.T().Fatalf("Failed to parse response: %v", err)
 	}
 
-	ts.applicationID = respData["id"].(string)
-	ts.T().Logf("Created test application with ID: %s", ts.applicationID)
+	appId := respData["id"].(string)
+	ts.T().Logf("Created test application with ID: %s", appId)
+	return appId
 }
 
 func (ts *TokenTestSuite) TearDownSuite() {
-	if ts.applicationID == "" {
-		return
+	// Clean up both applications
+	if ts.applicationIDBasic != "" {
+		ts.deleteApplication(ts.applicationIDBasic)
 	}
+	if ts.applicationIDPost != "" {
+		ts.deleteApplication(ts.applicationIDPost)
+	}
+}
 
+func (ts *TokenTestSuite) deleteApplication(appId string) {
 	// Delete the application
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/applications/%s", testServerURL, ts.applicationID), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/applications/%s", testServerURL, appId), nil)
 	if err != nil {
 		ts.T().Errorf("Failed to create delete request: %v", err)
 		return
@@ -141,7 +156,7 @@ func (ts *TokenTestSuite) TearDownSuite() {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		ts.T().Errorf("Failed to delete application. Status: %d, Response: %s", resp.StatusCode, string(bodyBytes))
 	} else {
-		ts.T().Logf("Successfully deleted test application with ID: %s", ts.applicationID)
+		ts.T().Logf("Successfully deleted test application with ID: %s", appId)
 	}
 }
 
@@ -254,7 +269,7 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantWithHeaderCredentials() {
 				ts.T().Fatalf("Failed to create request: %v", err)
 			}
 			request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			request.SetBasicAuth(clientId, clientSecret)
+			request.SetBasicAuth(clientId+"_client_secret_basic", clientSecret)
 
 			// Run the test.
 			ts.runClientCredentialsTestCase(request, tc.expectedStatus, tc.expectedScopes, "")
@@ -287,7 +302,7 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantWithBodyCredentials() {
 	for _, tc := range testCases {
 		ts.Run(tc.testName, func() {
 			reqBody := strings.NewReader("grant_type=client_credentials&scope=" + tc.requestedScopes +
-				"&client_id=" + clientId + "&client_secret=" + clientSecret)
+				"&client_id=" + clientId + "_client_secret_post" + "&client_secret=" + clientSecret)
 			request, err := http.NewRequest("POST", testServerURL+"/oauth2/token", reqBody)
 			if err != nil {
 				ts.T().Fatalf("Failed to create request: %v", err)
@@ -346,14 +361,14 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantNegativeCases() {
 		{
 			testName:       "InvalidGrantType",
 			requestBody:    "grant_type=invalid_grant",
-			authHeader:     "Basic " + basicAuth(clientId, clientSecret),
+			authHeader:     "Basic " + basicAuth(clientId+"_client_secret_basic", clientSecret),
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "unsupported_grant_type",
 		},
 		{
 			testName:       "MissingGrantType",
 			requestBody:    "",
-			authHeader:     "Basic " + basicAuth(clientId, clientSecret),
+			authHeader:     "Basic " + basicAuth(clientId+"_client_secret_basic", clientSecret),
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "invalid_request",
 		},

@@ -29,52 +29,45 @@ import (
 	// Use crypto/sha1 only for JWKS x5t as required by spec for thumbprint.
 	"crypto/sha1" //nolint:gosec
 
-	"github.com/asgardeo/thunder/internal/cert"
-	"github.com/asgardeo/thunder/internal/oauth/jwks/constants"
-	"github.com/asgardeo/thunder/internal/oauth/jwks/model"
 	"github.com/asgardeo/thunder/internal/system/config"
-	"github.com/asgardeo/thunder/internal/system/crypto/hash"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
+	"github.com/asgardeo/thunder/internal/system/hash"
 )
 
 // JWKSServiceInterface defines the interface for JWKS service.
 type JWKSServiceInterface interface {
-	GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError)
+	GetJWKS() (*JWKSResponse, *serviceerror.ServiceError)
 }
 
-// JWKSService implements the JWKSServiceInterface.
-type JWKSService struct {
-	SystemCertService cert.SystemCertificateServiceInterface
-}
+// jwksService implements the JWKSServiceInterface.
+type jwksService struct{}
 
-// NewJWKSService creates a new instance of JWKSService.
-func NewJWKSService() JWKSServiceInterface {
-	return &JWKSService{
-		SystemCertService: cert.NewSystemCertificateService(),
-	}
+// newJWKSService creates a new instance of JWKSService.
+func newJWKSService() JWKSServiceInterface {
+	return &jwksService{}
 }
 
 // GetJWKS retrieves the JSON Web Key Set (JWKS) from the server's TLS certificate.
-func (s *JWKSService) GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError) {
+func (s *jwksService) GetJWKS() (*JWKSResponse, *serviceerror.ServiceError) {
 	certConfig := config.GetThunderRuntime().CertConfig
 
 	kid := certConfig.CertKid
 	if kid == "" {
-		return nil, constants.ErrorCertificateKidNotFound
+		return nil, ErrorCertificateKidNotFound
 	}
 
 	tlsConfig := certConfig.TLSConfig
 	if tlsConfig == nil {
-		return nil, constants.ErrorTLSConfigNotFound
+		return nil, ErrorTLSConfigNotFound
 	}
 	if len(tlsConfig.Certificates) == 0 || len(tlsConfig.Certificates[0].Certificate) == 0 {
-		return nil, constants.ErrorNoCertificateFound
+		return nil, ErrorNoCertificateFound
 	}
 
 	certData := tlsConfig.Certificates[0].Certificate[0]
 	parsedCert, err := x509.ParseCertificate(certData)
 	if err != nil {
-		svcErr := constants.ErrorWhileParsingCertificate
+		svcErr := ErrorWhileParsingCertificate
 		svcErr.ErrorDescription = err.Error()
 		return nil, svcErr
 	}
@@ -87,7 +80,7 @@ func (s *JWKSService) GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError
 	x5t := base64.StdEncoding.EncodeToString(sha1Sum[:])
 	x5tS256 := hash.GenerateThumbprint(parsedCert.Raw)
 
-	var jwks model.JWKS
+	var jwks JWKS
 	switch pub := parsedCert.PublicKey.(type) {
 	case *rsa.PublicKey:
 		encodeBase64URL := func(b []byte) string {
@@ -107,7 +100,7 @@ func (s *JWKSService) GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError
 		}
 		eEnc := encodeBase64URL(eBytes)
 
-		jwks = model.JWKS{
+		jwks = JWKS{
 			Kid:     kid,
 			Kty:     "RSA",
 			Use:     "sig",
@@ -135,7 +128,7 @@ func (s *JWKSService) GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError
 			alg = "ES512"
 		}
 
-		jwks = model.JWKS{
+		jwks = JWKS{
 			Kid:     kid,
 			Kty:     "EC",
 			Use:     "sig",
@@ -148,10 +141,10 @@ func (s *JWKSService) GetJWKS() (*model.JWKSResponse, *serviceerror.ServiceError
 			X5tS256: x5tS256,
 		}
 	default:
-		return nil, constants.ErrorUnsupportedPublicKeyType
+		return nil, ErrorUnsupportedPublicKeyType
 	}
 
-	return &model.JWKSResponse{
-		Keys: []model.JWKS{jwks},
+	return &JWKSResponse{
+		Keys: []JWKS{jwks},
 	}, nil
 }

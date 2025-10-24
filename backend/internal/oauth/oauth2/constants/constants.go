@@ -19,7 +19,11 @@
 // Package constants defines constants used across the OAuth2 module.
 package constants
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/asgardeo/thunder/internal/oauth/oauth2/model"
+)
 
 // OAuth2 request parameters.
 const (
@@ -147,6 +151,7 @@ func (tam TokenEndpointAuthMethod) IsValid() bool {
 // OAuth2 token types.
 const (
 	TokenTypeBearer = "Bearer"
+	TokenTypeJWT    = "JWT"
 )
 
 // OAuth2 error codes.
@@ -164,3 +169,36 @@ const (
 
 // UnSupportedGrantTypeError is returned when an unsupported grant type is requested.
 var UnSupportedGrantTypeError = errors.New("unsupported_grant_type")
+
+// StandardOIDCScopes contains all standard OIDC scopes
+var StandardOIDCScopes = map[string]model.OIDCScope{
+	"openid": {
+		Name:        "openid",
+		Description: "REQUIRED scope for OpenID Connect authentication",
+		Claims:      []string{"sub"},
+	},
+	"profile": {
+		Name:        "profile",
+		Description: "Requests access to end-user's default profile claims",
+		Claims: []string{
+			"name", "family_name", "given_name", "middle_name",
+			"nickname", "preferred_username", "profile", "picture",
+			"website", "gender", "birthdate", "zoneinfo", "locale", "updated_at",
+		},
+	},
+	"email": {
+		Name:        "email",
+		Description: "Requests access to email and email_verified claims",
+		Claims:      []string{"email", "email_verified"},
+	},
+	"phone": {
+		Name:        "phone",
+		Description: "Requests access to phone_number and phone_number_verified claims",
+		Claims:      []string{"phone_number", "phone_number_verified"},
+	},
+	"address": {
+		Name:        "address",
+		Description: "Requests access to address claim",
+		Claims:      []string{"address"},
+	},
+}

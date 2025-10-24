@@ -33,14 +33,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/asgardeo/thunder/internal/cert"
-	"github.com/asgardeo/thunder/internal/oauth/jwks/constants"
 	"github.com/asgardeo/thunder/internal/system/config"
 )
 
 type JWKSServiceTestSuite struct {
 	suite.Suite
-	jwksService *JWKSService
+	jwksService *jwksService
 }
 
 func TestJWKSServiceSuite(t *testing.T) {
@@ -48,9 +46,7 @@ func TestJWKSServiceSuite(t *testing.T) {
 }
 
 func (suite *JWKSServiceTestSuite) SetupTest() {
-	suite.jwksService = &JWKSService{
-		SystemCertService: cert.NewSystemCertificateService(),
-	}
+	suite.jwksService = &jwksService{}
 }
 
 func (suite *JWKSServiceTestSuite) setupRuntimeConfig(tlsConfig *tls.Config, certKid string) error {
@@ -75,7 +71,7 @@ func (suite *JWKSServiceTestSuite) setupRuntimeConfig(tlsConfig *tls.Config, cer
 }
 
 func (suite *JWKSServiceTestSuite) TestNewJWKSService() {
-	service := NewJWKSService()
+	service := newJWKSService()
 	assert.NotNil(suite.T(), service)
 	assert.Implements(suite.T(), (*JWKSServiceInterface)(nil), service)
 }
@@ -194,7 +190,7 @@ func (suite *JWKSServiceTestSuite) TestGetJWKS_NoCertificatesInTLSConfig() {
 	result, svcErr := suite.jwksService.GetJWKS()
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), constants.ErrorNoCertificateFound.Code, svcErr.Code)
+	assert.Equal(suite.T(), ErrorNoCertificateFound.Code, svcErr.Code)
 }
 
 func (suite *JWKSServiceTestSuite) TestGetJWKS_EmptyCertificateInTLSConfig() {
@@ -214,7 +210,7 @@ func (suite *JWKSServiceTestSuite) TestGetJWKS_EmptyCertificateInTLSConfig() {
 	result, svcErr := suite.jwksService.GetJWKS()
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), constants.ErrorNoCertificateFound.Code, svcErr.Code)
+	assert.Equal(suite.T(), ErrorNoCertificateFound.Code, svcErr.Code)
 }
 
 func (suite *JWKSServiceTestSuite) TestGetJWKS_InvalidCertificateData() {
@@ -234,7 +230,7 @@ func (suite *JWKSServiceTestSuite) TestGetJWKS_InvalidCertificateData() {
 	result, svcErr := suite.jwksService.GetJWKS()
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), constants.ErrorWhileParsingCertificate.Code, svcErr.Code)
+	assert.Equal(suite.T(), ErrorWhileParsingCertificate.Code, svcErr.Code)
 }
 
 func (suite *JWKSServiceTestSuite) TestGetJWKS_CertKidNotFound() {
@@ -273,7 +269,7 @@ func (suite *JWKSServiceTestSuite) TestGetJWKS_CertKidNotFound() {
 	result, svcErr := suite.jwksService.GetJWKS()
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), constants.ErrorCertificateKidNotFound.Code, svcErr.Code)
+	assert.Equal(suite.T(), ErrorCertificateKidNotFound.Code, svcErr.Code)
 }
 
 func (suite *JWKSServiceTestSuite) TestGetJWKS_TLSConfigNotFound() {
@@ -284,9 +280,9 @@ func (suite *JWKSServiceTestSuite) TestGetJWKS_TLSConfigNotFound() {
 	result, svcErr := suite.jwksService.GetJWKS()
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
-	assert.Equal(suite.T(), constants.ErrorTLSConfigNotFound.Code, svcErr.Code)
+	assert.Equal(suite.T(), ErrorTLSConfigNotFound.Code, svcErr.Code)
 }
 
 func (suite *JWKSServiceTestSuite) TestJWKSServiceInterface() {
-	var _ JWKSServiceInterface = &JWKSService{}
+	var _ JWKSServiceInterface = &jwksService{}
 }

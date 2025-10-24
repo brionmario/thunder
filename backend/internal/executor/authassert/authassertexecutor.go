@@ -23,14 +23,13 @@ import (
 	"encoding/json"
 	"errors"
 
-	flowconst "github.com/asgardeo/thunder/internal/flow/constants"
-	flowmodel "github.com/asgardeo/thunder/internal/flow/model"
+	flowconst "github.com/asgardeo/thunder/internal/flow/common/constants"
+	flowmodel "github.com/asgardeo/thunder/internal/flow/common/model"
 	"github.com/asgardeo/thunder/internal/system/config"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
-	usermodel "github.com/asgardeo/thunder/internal/user/model"
-	userservice "github.com/asgardeo/thunder/internal/user/service"
+	"github.com/asgardeo/thunder/internal/user"
 )
 
 const loggerComponentName = "AuthAssertExecutor"
@@ -39,7 +38,7 @@ const loggerComponentName = "AuthAssertExecutor"
 type AuthAssertExecutor struct {
 	internal    flowmodel.Executor
 	JWTService  jwt.JWTServiceInterface
-	UserService userservice.UserServiceInterface
+	UserService user.UserServiceInterface
 }
 
 var _ flowmodel.ExecutorInterface = (*AuthAssertExecutor)(nil)
@@ -49,7 +48,7 @@ func NewAuthAssertExecutor(id, name string, properties map[string]string) *AuthA
 	return &AuthAssertExecutor{
 		internal:    *flowmodel.NewExecutor(id, name, []flowmodel.InputData{}, []flowmodel.InputData{}, properties),
 		JWTService:  jwt.GetJWTService(),
-		UserService: userservice.GetUserService(),
+		UserService: user.GetUserService(),
 	}
 }
 
@@ -140,7 +139,7 @@ func (a *AuthAssertExecutor) generateAuthAssertion(ctx *flowmodel.NodeContext, l
 	}
 
 	jwtClaims := make(map[string]interface{})
-	jwtConfig := config.GetThunderRuntime().Config.OAuth.JWT
+	jwtConfig := config.GetThunderRuntime().Config.JWT
 	iss := ""
 	validityPeriod := int64(0)
 
@@ -157,7 +156,7 @@ func (a *AuthAssertExecutor) generateAuthAssertion(ctx *flowmodel.NodeContext, l
 
 	if ctx.Application.Token != nil && len(ctx.Application.Token.UserAttributes) > 0 &&
 		ctx.AuthenticatedUser.UserID != "" {
-		var user *usermodel.User
+		var user *user.User
 		var attrs map[string]interface{}
 
 		for _, attr := range ctx.Application.Token.UserAttributes {
@@ -194,7 +193,7 @@ func (a *AuthAssertExecutor) generateAuthAssertion(ctx *flowmodel.NodeContext, l
 
 // getUserAttributes retrieves user details and unmarshal the attributes.
 func (a *AuthAssertExecutor) getUserAttributes(userID string, logger *log.Logger) (
-	*usermodel.User, map[string]interface{}, error) {
+	*user.User, map[string]interface{}, error) {
 	var svcErr *serviceerror.ServiceError
 	user, svcErr := a.UserService.GetUser(userID)
 	if svcErr != nil {

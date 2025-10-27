@@ -70,7 +70,7 @@ func main() {
 	var server *http.Server
 	if cfg.Server.HTTPOnly {
 		logger.Info("TLS is not enabled, starting server without TLS")
-		server = startHTTPServer(logger, cfg, mux)
+		server = startHTTPServer(logger, cfg, mux, thunderHome)
 	} else {
 		server = startTLSServer(logger, cfg, mux, thunderHome)
 	}
@@ -130,11 +130,8 @@ func initCacheManager(logger *log.Logger) {
 	cm.Init()
 }
 
-// startTLSServer starts the HTTPS server with TLS configuration.
-func startTLSServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux, thunderHome string) *http.Server {
-	server, serverAddr := createHTTPServer(logger, cfg, mux)
-
-	// Get TLS configuration from the certificate and key files.
+// loadAndSetCertConfig loads the certificate configuration and extracts the Key ID (kid).
+func loadAndSetCertConfig(logger *log.Logger, cfg *config.Config, thunderHome string) *tls.Config {
 	sysCertSvc := cert.NewSystemCertificateService()
 	tlsConfig, err := sysCertSvc.GetTLSConfig(cfg, thunderHome)
 	if err != nil {
@@ -152,6 +149,16 @@ func startTLSServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux, 
 		CertKid:   kid,
 	}
 	config.GetThunderRuntime().SetCertConfig(certConfig)
+
+	return tlsConfig
+}
+
+// startTLSServer starts the HTTPS server with TLS configuration.
+func startTLSServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux, thunderHome string) *http.Server {
+	server, serverAddr := createHTTPServer(logger, cfg, mux)
+
+	// Load certificate configuration (required for TLS and JWT generation).
+	tlsConfig := loadAndSetCertConfig(logger, cfg, thunderHome)
 
 	ln, err := tls.Listen("tcp", serverAddr, tlsConfig)
 	if err != nil {
@@ -171,8 +178,11 @@ func startTLSServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux, 
 }
 
 // startHTTPServer starts the HTTP server without TLS.
-func startHTTPServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux) *http.Server {
+func startHTTPServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux, thunderHome string) *http.Server {
 	server, serverAddr := createHTTPServer(logger, cfg, mux)
+
+	// TODO: Remove after configuring separate certificates for JWT generation
+	loadAndSetCertConfig(logger, cfg, thunderHome)
 
 	logger.Info("WSO2 Thunder server started (HTTP)...", log.String("address", serverAddr))
 

@@ -1,4 +1,5 @@
 # WSO2 Thunder ⚡
+
 ### Identity Management Suite
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -72,14 +73,21 @@ Follow these steps to download the latest release of WSO2 Thunder and run it loc
     If you are using a Linux or macOS machine:
 
     ```bash
-    bash start.sh
+    bash start.sh --setup
     ```
 
     If you are using a Windows machine:
 
     ```powershell
-    .\start.ps1
+    .\start.ps1 --setup
     ```
+
+> [!TIP]
+> The `--setup` flag initializes the product with default configurations, including creating an admin user and the Develop application.
+> You can omit this flag if you have already set up the initial data.
+> You can also run the setup manually later using the script located at:
+>   - **Linux/macOS**: `<THUNDER_HOME>/scripts/setup_initial_data.sh`
+>   - **Windows**: `<THUNDER_HOME>\scripts\setup_initial_data.ps1`
 
 #### Option 2: Run with Docker
 
@@ -119,45 +127,28 @@ Follow these steps to run WSO2 Thunder using Docker.
       ghcr.io/asgardeo/thunder:latest
     ```
 
+3. **Initialize with default data (Required for first-time setup)**
+
+    To use the Developer Console and sample applications, you need to set up initial data including the default admin user. Run this command after starting the container:
+
+    ```bash
+    docker exec -it $(docker ps -q --filter ancestor=ghcr.io/asgardeo/thunder:latest) \
+      /opt/thunder/scripts/setup_initial_data.sh
+    ```
+
+    This creates:
+    - Default admin user (`admin` / `admin`)  
+    - Developer Console application
+    - Basic authentication and registration flows
+
+    > [!NOTE]
+    > Replace the container selection with your specific container name if running multiple Thunder containers.
+
 ### Try Out the Product
 
 #### Try out the Developer Console
 
-To get started quickly, you can set up initial data including an admin user and the Develop application using the `--setup` flag when starting Thunder:
-
-**Linux/macOS:**
-
-```bash
-bash start.sh --setup
-```
-
-**Windows (PowerShell):**
-
-```powershell
-.\start.ps1 --setup
-```
-
-This will:
-
-- Create a user schema
-- Create an admin user with credentials: `admin` / `admin`
-- Create the Develop application for accessing the admin console
-
-You can also run the setup script manually at any time:
-
-**Linux/macOS:**
-
-```bash
-bash scripts/setup_initial_data.sh
-```
-
-**Windows (PowerShell):**
-
-```powershell
-.\scripts\setup_initial_data.ps1
-```
-
-After the setup is complete, follow these steps to access the Developer Console:
+Follow these steps to access the Developer Console:
 
 1. Open your browser and navigate to [https://localhost:8090/develop](https://localhost:8090/develop).
 

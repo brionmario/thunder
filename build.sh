@@ -632,6 +632,69 @@ function ensure_certificates() {
 }
 
 function run() {
+    echo "Running frontend apps..."
+    run_frontend
+
+    # Start backend with initial output but without final output/wait
+    run_backend false
+    
+    GATE_APP_DEFAULT_PORT=5190
+    DEVELOP_APP_DEFAULT_PORT=5191
+
+    # Run initial data setup
+    echo "⚙️  Running initial data setup..."
+    echo ""
+    
+    # Run the setup script - it will handle server readiness checking
+    # In dev mode, add the frontend dev server redirect URI
+    "$BACKEND_BASE_DIR/scripts/setup_initial_data.sh" -port "$BACKEND_PORT" --develop-redirect-uris "https://localhost:$DEVELOP_APP_DEFAULT_PORT/develop"
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Initial data setup failed"
+        echo "💡 Check the logs above for more details"
+        echo "💡 You can run the setup manually using: $BACKEND_BASE_DIR/scripts/setup_initial_data.sh -port $BACKEND_PORT --develop-redirect-uris \"https://localhost:$DEVELOP_APP_DEFAULT_PORT/develop\""
+    fi
+
+    echo ""
+    echo "🚀 Servers running:"
+    echo "  👉 Backend : https://localhost:$BACKEND_PORT"
+    echo "  📱 Frontend :"
+    echo "      🚪 Gate (Login/Register): https://localhost:$GATE_APP_DEFAULT_PORT/signin"
+    echo "      🛠️  Develop (Admin Console): https://localhost:$DEVELOP_APP_DEFAULT_PORT/develop"
+    echo ""
+
+    echo "Press Ctrl+C to stop."
+
+    cleanup_servers() {
+        echo -e "\n🛑 Shutting down servers..."
+        # Kill frontend processes using multiple approaches
+        if [ ! -z "$FRONTEND_PID" ]; then 
+            kill $FRONTEND_PID 2>/dev/null
+        fi
+        # Kill all pnpm dev processes
+        pkill -f "pnpm.*dev" 2>/dev/null
+        # Kill all vite processes
+        pkill -f "vite" 2>/dev/null
+        # Kill backend process
+        if [ ! -z "$BACKEND_PID" ]; then 
+            kill $BACKEND_PID 2>/dev/null
+        fi
+
+        # Wait a moment for processes to exit gracefully
+        sleep 1
+
+        echo "✅ All servers stopped successfully."
+        exit 0
+    }
+    
+    trap cleanup_servers SIGINT
+
+    wait $BACKEND_PID 2>/dev/null
+}
+
+function run_backend() {
+    local show_final_output=${1:-true}
+
     echo "=== Ensuring server certificates exist ==="
     ensure_certificates "$BACKEND_DIR/$SECURITY_DIR"
 
@@ -653,17 +716,44 @@ function run() {
     BACKEND_PORT=$BACKEND_PORT go run -C "$BACKEND_DIR" . &
     BACKEND_PID=$!
 
-    echo ""
-    echo "🚀 Servers running:"
-    echo "👉 Backend : https://localhost:$BACKEND_PORT"
-    echo "📱 Frontend Apps:"
-    echo "   🚪 Gate (Login/Register): https://localhost:$BACKEND_PORT/signin"
-    echo "   🛠️  Develop (Admin Console): https://localhost:$BACKEND_PORT/develop"
-    echo "Press Ctrl+C to stop."
+    if [ "$show_final_output" = "true" ]; then
+        echo ""
+        echo "🚀 Servers running:"
+        echo "👉 Backend : https://localhost:$BACKEND_PORT"
+        echo "Press Ctrl+C to stop."
 
-    trap 'echo -e "\nStopping servers..."; kill $BACKEND_PID; exit' SIGINT
+        trap 'echo -e "\n🛑 Shutting down backend server..."; kill $BACKEND_PID 2>/dev/null; echo "✅ Backend server stopped successfully."; exit 0' SIGINT
 
-    wait $BACKEND_PID
+        wait $BACKEND_PID 2>/dev/null
+    fi
+}
+
+function run_frontend() {
+    echo "================================================================"
+    echo "Running frontend apps..."
+    
+    # Check if pnpm is installed, if not install it
+    if ! command -v pnpm >/dev/null 2>&1; then
+        echo "pnpm not found, installing..."
+        npm install -g pnpm
+    fi
+    
+    # Navigate to frontend directory and install dependencies
+    cd "$FRONTEND_BASE_DIR" || exit 1
+    echo "Installing frontend dependencies..."
+    pnpm install
+    
+    echo "Building frontend applications & packages..."
+    pnpm build
+    
+    echo "Starting frontend applications in the background..."
+    # Start frontend processes in background
+    pnpm -r --parallel --filter "@thunder/develop" --filter "@thunder/gate" dev &
+    FRONTEND_PID=$!
+    
+    # Return to script directory
+    cd "$SCRIPT_DIR" || exit 1
+    echo "================================================================"
 }
 
 case "$1" in
@@ -710,6 +800,12 @@ case "$1" in
     run)
         run
         ;;
+    run_backend)
+        run_backend
+        ;;
+    run_frontend)
+        run_frontend
+        ;;
     *)
         echo "Usage: ./build.sh {clean|build|build_backend|build_frontend|test|run} [OS] [ARCH]"
         echo ""
@@ -723,7 +819,9 @@ case "$1" in
         echo "  test_integration         - Run integration tests"
         echo "  merge_coverage           - Merge unit and integration test coverage reports"
         echo "  test                     - Run all tests (unit and integration)"
-        echo "  run                      - Run the Thunder server for development"
+        echo "  run                      - Run the Thunder server for development (with automatic initial data setup)"
+        echo "  run_backend              - Run the Thunder backend for development"
+        echo "  run_frontend             - Run the Thunder frontend for development"
         exit 1
         ;;
 esac

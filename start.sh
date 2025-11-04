@@ -124,15 +124,6 @@ cleanup() {
 # Cleanup on Ctrl+C
 trap cleanup SIGINT
 
-# Status
-echo ""
-echo "🚀 Server running"
-echo ""
-echo "📱 Frontend Apps:"
-echo "   🚪 Gate (Login/Register): $BACKEND_PORT/signin"
-echo "   🛠️  Develop (Admin Console): $BACKEND_PORT/develop"
-echo ""
-
 # Run initial setup if requested
 if [ "$SETUP_MODE" = "true" ]; then
     echo "⚙️  Running initial data setup..."
@@ -140,23 +131,17 @@ if [ "$SETUP_MODE" = "true" ]; then
     
     # Run the setup script - it will handle server readiness checking
     ./scripts/setup_initial_data.sh -port "$BACKEND_PORT"
-    
-    if [ $? -eq 0 ]; then
-        echo ""
-        echo "✅ Initial data setup completed successfully!"
-        echo ""
-        echo "👤 Admin credentials:"
-        echo "   Username: admin"
-        echo "   Password: admin"
-        echo "   Email: admin@thunder.dev"
-        echo ""
-    else
+
+    if [ $? -ne 0 ]; then
         echo "❌ Initial data setup failed"
         echo "💡 Check the logs above for more details"
         echo "💡 You can run the setup manually using: ./scripts/setup_initial_data.sh -port $BACKEND_PORT"
     fi
 fi
 
+# Status
+echo ""
+echo "🚀 Server running"
 echo "Press Ctrl+C to stop the server."
 
 # Wait for background processes

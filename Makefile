@@ -90,9 +90,14 @@ build_with_coverage_only:
 	ENABLE_COVERAGE=true ./build.sh build_backend $(OS) $(ARCH)
 	@echo "================================================================"
 
-
 run:
 	./build.sh run $(OS) $(ARCH)
+
+run_backend:
+	./build.sh run_backend $(OS) $(ARCH)
+
+run_frontend:
+	./build.sh run_frontend $(OS) $(ARCH)
 
 docker-build:
 	docker build -t thunder:$(VERSION) .
@@ -137,7 +142,9 @@ help:
 	@echo "  build_with_coverage  		   - Build with coverage flags, run unit and integration tests, and generate combined coverage report."
 	@echo "  build_with_coverage_only      - Build with coverage instrumentation (unit tests only, no integration tests)."
 	@echo "  test                          - Run all tests (unit and integration)."
-	@echo "  run                           - Build and run the application locally."
+	@echo "  run                           - Build and run the Thunder server locally."
+	@echo "  run_backend                   - Build and run the Thunder backend locally."
+	@echo "  run_frontend                  - Build and run the frontend applications locally."
 	@echo "  docker-build                  - Build single-arch Docker image with version tag."
 	@echo "  docker-build-latest           - Build single-arch Docker image with latest tag."
 	@echo "  docker-build-multiarch        - Build multi-arch Docker image with version tag."

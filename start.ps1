@@ -183,14 +183,6 @@ try {
         $proc = Start-Process -FilePath $thunderPath -WorkingDirectory $scriptDir -NoNewWindow -PassThru
     }
 
-    Write-Host ""
-    Write-Host "🚀 Server running. PID: $($proc.Id)"
-    Write-Host ""
-    Write-Host "📱 Frontend Apps:"
-    Write-Host "   🚪 Gate (Login/Register): $BACKEND_PORT/signin"
-    Write-Host "   🛠️  Develop (Admin Console): $BACKEND_PORT/develop"
-    Write-Host ""
-
     # Run initial setup if requested
     if ($SETUP_MODE) {
         Write-Host "⚙️  Running initial data setup..."
@@ -202,17 +194,7 @@ try {
             try {
                 & $setupScript -Port $BACKEND_PORT
                 
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host ""
-                    Write-Host "✅ Initial data setup completed successfully!" -ForegroundColor Green
-                    Write-Host ""
-                    Write-Host "👤 Admin credentials:"
-                    Write-Host "   Username: admin"
-                    Write-Host "   Password: admin"
-                    Write-Host "   Email: admin@thunder.dev"
-                    Write-Host ""
-                }
-                else {
+                if ($LASTEXITCODE -ne 0) {
                     Write-Host "❌ Initial data setup failed" -ForegroundColor Red
                     Write-Host "💡 Check the logs above for more details" -ForegroundColor Yellow
                     Write-Host "💡 You can run the setup manually using: .\scripts\setup_initial_data.ps1 -Port $BACKEND_PORT" -ForegroundColor Yellow
@@ -228,6 +210,14 @@ try {
             Write-Host "💡 Make sure you're running this script from the correct directory" -ForegroundColor Yellow
         }
     }
+
+    Write-Host ""
+    Write-Host "🚀 Server running. PID: $($proc.Id)"
+    Write-Host ""
+    Write-Host "📱 Frontend Apps:"
+    Write-Host "   🚪 Gate (Login/Register): $BACKEND_PORT/signin"
+    Write-Host "   🛠️  Develop (Admin Console): $BACKEND_PORT/develop"
+    Write-Host ""
 
     Write-Host "Press Ctrl+C to stop the server."
 

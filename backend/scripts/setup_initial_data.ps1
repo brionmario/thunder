@@ -31,6 +31,9 @@ param(
     [int]$Timeout = 30,
     
     [Parameter()]
+    [string]$DevelopRedirectUris,
+    
+    [Parameter()]
     [switch]$Help
 )
 
@@ -55,6 +58,7 @@ function Show-Help {
     Write-Host "  -Port <port>         Thunder server port (default: 8090 or from config)"
     Write-Host "  -Config <path>       Path to Thunder configuration file"
     Write-Host "  -Timeout <seconds>   Timeout for server readiness check (default: 30 seconds)"
+    Write-Host "  -DevelopRedirectUris <uris> Comma-separated list of redirect URIs for DEVELOP app"
     Write-Host "  -Help                Show this help message and exit"
     Write-Host ""
     Write-Host "Environment Variables:"
@@ -66,6 +70,11 @@ function Show-Help {
     Write-Host "  - Default locations: ..\cmd\server\repository\conf\deployment.yaml"
     Write-Host "  - Command line arguments (-Port)"
     Write-Host "  - Environment variables (BACKEND_PORT)"
+    Write-Host ""
+    Write-Host "Examples:"
+    Write-Host "  .\setup_initial_data.ps1 -Port 8090"
+    Write-Host "  .\setup_initial_data.ps1 -DevelopRedirectUris 'https://localhost:5191/develop,https://localhost:8090/develop'"
+    Write-Host "  .\setup_initial_data.ps1 -Port 8090 -DevelopRedirectUris 'https://localhost:5191/develop'"
     Write-Host ""
 }
 
@@ -356,6 +365,24 @@ function New-DevelopApp {
     
     Write-Info "Creating DEVELOP application..."
     
+    # Determine redirect URIs
+    $redirectUris = @("${BaseUrl}/develop")
+    
+    # Add custom redirect URIs if provided
+    if (-not [string]::IsNullOrWhiteSpace($DevelopRedirectUris)) {
+        Write-Info "Using custom DEVELOP redirect URIs: $DevelopRedirectUris"
+        # Split comma-separated URIs and add them
+        $customUris = $DevelopRedirectUris -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+        $redirectUris += $customUris
+    }
+    else {
+        # Auto-detect development mode if no custom URIs provided
+        if ($BaseUrl -like "*:8090*") {
+            Write-Info "Development mode detected - adding frontend dev server redirect URI"
+            $redirectUris += "https://localhost:5191/develop"
+        }
+    }
+    
     $body = @{
         name = "Develop"
         description = "Developer application for Thunder"
@@ -370,7 +397,7 @@ function New-DevelopApp {
                 type = "oauth2"
                 config = @{
                     client_id = "DEVELOP"
-                    redirect_uris = @("https://localhost:5191")
+                    redirect_uris = $redirectUris
                     grant_types = @("authorization_code")
                     response_types = @("code")
                     pkce_required = $false
@@ -403,20 +430,23 @@ function New-DevelopApp {
         
         if ($response.StatusCode -eq 201 -or $response.StatusCode -eq 200) {
             Write-Success "DEVELOP application created successfully"
-            Write-Info "Application URL: ${BaseUrl}/develop"
-            Write-Info "Client ID: DEVELOP"
             return $true
         }
     }
     catch {
         $statusCode = $_.Exception.Response.StatusCode.value__
+        $errorMessage = $_.Exception.Message
         if ($statusCode -eq 409) {
+            Write-Warning "DEVELOP application already exists, skipping creation"
+            return $true
+        }
+        elseif ($statusCode -eq 400 -and ($errorMessage -match "Application already exists" -or $errorMessage -match "APP-1020" -or $errorMessage -match "APP-1021")) {
             Write-Warning "DEVELOP application already exists, skipping creation"
             return $true
         }
         else {
             Write-Error "Failed to create DEVELOP application. HTTP status: $statusCode"
-            Write-Host "Response: $($_.Exception.Message)"
+            Write-Host "Response: $errorMessage"
             return $false
         }
     }
@@ -470,10 +500,6 @@ function Main {
     Write-Host ""
     
     Write-Success "Initial data setup completed successfully!"
-    Write-Host ""
-    Write-Host "📱 You can now access:"
-    Write-Host "   🚪 Gate (Login/Register): ${BASE_URL}/signin"
-    Write-Host "   🛠️  Develop (Admin Console): ${BASE_URL}/develop"
     Write-Host ""
     Write-Host "👤 Admin credentials:"
     Write-Host "   Username: admin"

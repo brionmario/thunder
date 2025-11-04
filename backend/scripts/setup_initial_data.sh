@@ -24,6 +24,7 @@ BACKEND_PORT=${BACKEND_PORT:-8090}
 TIMEOUT=30
 RETRY_DELAY=2
 CONFIG_FILE=""
+DEVELOP_REDIRECT_URIS=""
 
 # Default config file paths to check (relative to script location)
 DEFAULT_CONFIG_PATHS=(
@@ -43,13 +44,14 @@ print_help() {
   echo "  $0 [OPTIONS]"
   echo ""
   echo "Options:"
-  printf "  %-15s %s\n" "-port, --port" "Thunder server port (default: 8090 or from config)"
-  printf "  %-15s %s\n" "-config, --config" "Path to Thunder configuration file"
-  printf "  %-15s %s\n" "-timeout, --timeout" "Timeout for server readiness check (default: 30 seconds)"
-  printf "  %-15s %s\n" "-h, --help" "Show this help message and exit"
+  printf "  %-20s %s\n" "-port, --port" "Thunder server port (default: 8090 or from config)"
+  printf "  %-20s %s\n" "-config, --config" "Path to Thunder configuration file"
+  printf "  %-20s %s\n" "-timeout, --timeout" "Timeout for server readiness check (default: 30 seconds)"
+  printf "  %-20s %s\n" "-develop-redirect-uris, --develop-redirect-uris" "Comma-separated list of redirect URIs for DEVELOP app"
+  printf "  %-20s %s\n" "-h, --help" "Show this help message and exit"
   echo ""
   echo "Environment Variables:"
-  printf "  %-15s %s\n" "BACKEND_PORT" "Thunder server port (can be overridden by --port)"
+  printf "  %-20s %s\n" "BACKEND_PORT" "Thunder server port (can be overridden by --port)"
   echo ""
   echo "Configuration:"
   echo "  The script attempts to auto-detect server settings from:"
@@ -57,6 +59,11 @@ print_help() {
   echo "  - Default locations: ../cmd/server/repository/conf/deployment.yaml"
   echo "  - Command line arguments (--port)"
   echo "  - Environment variables (BACKEND_PORT)"
+  echo ""
+  echo "Examples:"
+  echo "  $0 --port 8090"
+  echo "  $0 --develop-redirect-uris \"https://localhost:5191/develop,https://localhost:8090/develop\""
+  echo "  $0 --port 8090 --develop-redirect-uris \"https://localhost:5191/develop\""
   echo ""
 }
 
@@ -66,6 +73,7 @@ parse_args() {
       -port|--port) BACKEND_PORT="$2"; shift 2;;
       -timeout|--timeout) TIMEOUT="$2"; shift 2;;
       -config|--config) CONFIG_FILE="$2"; shift 2;;
+      -develop-redirect-uris|--develop-redirect-uris) DEVELOP_REDIRECT_URIS="$2"; shift 2;;
       -h|--help) print_help; exit 0;;
       *) echo -e "${RED}Unknown parameter passed: $1${NC}"; exit 1;;
     esac
@@ -312,6 +320,30 @@ create_admin_user() {
 create_develop_app() {
   log_info "Creating DEVELOP application..."
   
+  # Determine redirect URIs
+  local redirect_uris="[\"${BASE_URL}/develop\""
+  
+  # Add custom redirect URIs if provided
+  if [[ -n "$DEVELOP_REDIRECT_URIS" ]]; then
+    log_info "Using custom DEVELOP redirect URIs: $DEVELOP_REDIRECT_URIS"
+    # Split comma-separated URIs and add them
+    IFS=',' read -ra URIS <<< "$DEVELOP_REDIRECT_URIS"
+    for uri in "${URIS[@]}"; do
+      # Trim whitespace and add to the list
+      uri=$(echo "$uri" | xargs)
+      if [[ -n "$uri" ]]; then
+        redirect_uris="${redirect_uris}, \"${uri}\""
+      fi
+    done
+  else
+    # Auto-detect development mode if no custom URIs provided
+    if [[ "${BASE_URL}" == *":8090"* ]]; then
+      log_info "Development mode detected - adding frontend dev server redirect URI"
+      redirect_uris="${redirect_uris}, \"https://localhost:5191/develop\""
+    fi
+  fi
+  redirect_uris="${redirect_uris}]"
+  
   local response
   response=$(curl -k -s -w "%{http_code}" -X POST \
     "${BASE_URL}/applications" \
@@ -329,7 +361,7 @@ create_develop_app() {
         \"type\": \"oauth2\",
         \"config\": {
           \"client_id\": \"DEVELOP\",
-          \"redirect_uris\": [\"${BASE_URL}/develop\"],
+          \"redirect_uris\": ${redirect_uris},
           \"grant_types\": [\"authorization_code\"],
           \"response_types\": [\"code\"],
           \"pkce_required\": false,
@@ -361,11 +393,11 @@ create_develop_app() {
   
   if [[ "$http_code" == "201" ]] || [[ "$http_code" == "200" ]]; then
     log_success "DEVELOP application created successfully"
-    log_info "Application URL: ${BASE_URL}/develop"
-    log_info "Client ID: DEVELOP"
     return 0
   elif [[ "$http_code" == "409" ]]; then
     log_warning "DEVELOP application already exists, skipping creation"
+    return 0
+  elif [[ "$http_code" == "400" ]] && [[ "$body" =~ (Application already exists|APP-1022) ]]; then
     return 0
   else
     log_error "Failed to create DEVELOP application. HTTP status: $http_code"
@@ -422,10 +454,6 @@ main() {
   echo ""
   
   log_success "Initial data setup completed successfully!"
-  echo ""
-  echo "📱 You can now access:"
-  echo "   🚪 Gate (Login/Register): ${BASE_URL}/signin"
-  echo "   🛠️  Develop (Admin Console): ${BASE_URL}/develop"
   echo ""
   echo "👤 Admin credentials:"
   echo "   Username: admin"

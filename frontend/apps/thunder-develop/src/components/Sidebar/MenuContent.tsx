@@ -20,41 +20,43 @@ import {NavLink} from 'react-router';
 import {List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack} from '@wso2/oxygen-ui';
 import {Blocks, LayoutGrid, User, UsersRound} from 'lucide-react';
 import type {JSX} from 'react';
+import {useTranslation} from 'react-i18next';
 import useNavigation from '@/layouts/contexts/useNavigation';
-
-const mainListItems = [
-  {
-    id: 'users',
-    text: 'Users',
-    icon: <UsersRound size={16} />,
-    category: 'Dashboard',
-    path: '/users',
-  },
-  {
-    id: 'user-types',
-    text: 'User Types',
-    icon: <User size={16} />,
-    category: 'Dashboard',
-    path: '/user-types',
-  },
-  {
-    id: 'integrations',
-    text: 'Integrations',
-    icon: <Blocks size={16} />,
-    category: 'Dashboard',
-    path: '/integrations',
-  },
-  {
-    id: 'applications',
-    text: 'Applications',
-    icon: <LayoutGrid size={16} />,
-    category: 'Dashboard',
-    path: '/applications',
-  },
-];
 
 export default function MenuContent(): JSX.Element {
   const {currentPage, setCurrentPage} = useNavigation();
+  const {t} = useTranslation();
+
+  const mainListItems = [
+    {
+      id: 'users',
+      text: t('navigation:pages.users'),
+      icon: <UsersRound size={16} />,
+      category: 'Dashboard',
+      path: '/users',
+    },
+    {
+      id: 'user-types',
+      text: t('navigation:pages.userTypes'),
+      icon: <User size={16} />,
+      category: 'Dashboard',
+      path: '/user-types',
+    },
+    {
+      id: 'integrations',
+      text: t('navigation:pages.integrations'),
+      icon: <Blocks size={16} />,
+      category: 'Dashboard',
+      path: '/integrations',
+    },
+    {
+      id: 'applications',
+      text: t('navigation:pages.applications'),
+      icon: <LayoutGrid size={16} />,
+      category: 'Dashboard',
+      path: '/applications',
+    },
+  ];
 
   const handleListItemClick = (item: {id: string; text: string; category: string}) => {
     setCurrentPage(item.id);

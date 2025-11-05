@@ -37,6 +37,7 @@ import (
 	"github.com/asgardeo/thunder/internal/idp"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	httpservice "github.com/asgardeo/thunder/internal/system/http"
+	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/user"
 )
@@ -88,12 +89,13 @@ func NewOIDCAuthExecutor(id, name string, defaultInputs []flowmodel.InputData, p
 		LogoutEndpoint:        oAuthProps.LogoutEndpoint,
 		JwksEndpoint:          oAuthProps.JwksEndpoint,
 	}
-	oAuthSvc := authnoauth.NewOAuthAuthnService(
-		httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout),
-		idp.NewIDPService(),
-		endpoints,
-	)
-	authSvc := authnoidc.NewOIDCAuthnService(oAuthSvc, nil)
+
+	// TODO: Should be injected when moving executors to di pattern.
+	httpClient := httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout)
+	idpSvc := idp.NewIDPService()
+	userSvc := user.GetUserService()
+	jwtSvc := jwt.GetJWTService()
+	authSvc := authnoidc.NewOIDCAuthnService(httpClient, idpSvc, userSvc, jwtSvc, endpoints)
 
 	return &OIDCAuthExecutor{
 		IdentifyingExecutor: identify.NewIdentifyingExecutor(id, name, properties),

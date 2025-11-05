@@ -46,7 +46,7 @@ func TestCredentialsAuthnServiceTestSuite(t *testing.T) {
 
 func (suite *CredentialsAuthnServiceTestSuite) SetupTest() {
 	suite.mockUserService = usermock.NewUserServiceInterfaceMock(suite.T())
-	suite.service = NewCredentialsAuthnService(suite.mockUserService)
+	suite.service = newCredentialsAuthnService(suite.mockUserService)
 }
 
 func (suite *CredentialsAuthnServiceTestSuite) TestAuthenticateSuccess() {
@@ -119,7 +119,7 @@ func (suite *CredentialsAuthnServiceTestSuite) TestAuthenticateFailures() {
 			if tc.setupMock != nil {
 				tc.setupMock(m)
 			}
-			svc := NewCredentialsAuthnService(m)
+			svc := newCredentialsAuthnService(m)
 
 			result, err := svc.Authenticate(tc.attributes)
 			suite.Nil(result)
@@ -218,7 +218,7 @@ func (suite *CredentialsAuthnServiceTestSuite) TestAuthenticateWithServiceErrors
 			if tc.setupMock != nil {
 				tc.setupMock(m)
 			}
-			svc := NewCredentialsAuthnService(m)
+			svc := newCredentialsAuthnService(m)
 
 			result, err := svc.Authenticate(tc.attributes)
 			suite.Nil(result)

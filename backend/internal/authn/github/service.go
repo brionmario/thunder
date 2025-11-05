@@ -46,27 +46,38 @@ type githubOAuthAuthnService struct {
 	httpClient syshttp.HTTPClientInterface
 }
 
-// NewGithubOAuthAuthnService returns an OAuth authenticator service for GitHub.
-func NewGithubOAuthAuthnService(oAuthSvc authnoauth.OAuthAuthnServiceInterface,
-	httpClient syshttp.HTTPClientInterface) GithubOAuthAuthnServiceInterface {
-	if oAuthSvc == nil {
-		oAuthSvc = authnoauth.NewOAuthAuthnService(nil, nil, authnoauth.OAuthEndpoints{
-			AuthorizationEndpoint: AuthorizeEndpoint,
-			TokenEndpoint:         TokenEndpoint,
-			UserInfoEndpoint:      UserInfoEndpoint,
-		})
-	}
-	if httpClient == nil {
-		httpClient = syshttp.NewHTTPClientWithTimeout(authncm.DefaultHTTPTimeout)
-	}
+// newGithubOAuthAuthnService creates a new instance of GitHub OAuth authenticator service.
+func newGithubOAuthAuthnService(idpSvc idp.IDPServiceInterface,
+	userSvc user.UserServiceInterface) GithubOAuthAuthnServiceInterface {
+	httpClient := syshttp.NewHTTPClient()
+	internal := authnoauth.NewOAuthAuthnService(httpClient, idpSvc, userSvc, authnoauth.OAuthEndpoints{
+		AuthorizationEndpoint: AuthorizeEndpoint,
+		TokenEndpoint:         TokenEndpoint,
+		UserInfoEndpoint:      UserInfoEndpoint,
+	})
 
 	service := &githubOAuthAuthnService{
-		internal:   oAuthSvc,
+		internal:   internal,
 		httpClient: httpClient,
 	}
 	authncm.RegisterAuthenticator(service.getMetadata())
 
 	return service
+}
+
+// NewGithubOAuthAuthnService returns an OAuth authenticator service for GitHub.
+// [Deprecated: use dependency injection to get the instance instead].
+// TODO: Should be removed when executors are migrated to di pattern.
+func NewGithubOAuthAuthnService(idpSvc idp.IDPServiceInterface,
+	userSvc user.UserServiceInterface) GithubOAuthAuthnServiceInterface {
+	if idpSvc == nil {
+		idpSvc = idp.NewIDPService()
+	}
+	if userSvc == nil {
+		userSvc = user.GetUserService()
+	}
+
+	return newGithubOAuthAuthnService(idpSvc, userSvc)
 }
 
 // BuildAuthorizeURL constructs the authorization request URL for GitHub OAuth authentication.
@@ -151,6 +162,12 @@ func (g *githubOAuthAuthnService) fetchPrimaryEmail(accessToken string) (string,
 // GetInternalUser retrieves the internal user based on the external subject identifier.
 func (g *githubOAuthAuthnService) GetInternalUser(sub string) (*user.User, *serviceerror.ServiceError) {
 	return g.internal.GetInternalUser(sub)
+}
+
+// GetOAuthClientConfig retrieves and validates the OAuth client configuration for the given identity provider ID.
+func (g *githubOAuthAuthnService) GetOAuthClientConfig(idpID string) (
+	*authnoauth.OAuthClientConfig, *serviceerror.ServiceError) {
+	return g.internal.GetOAuthClientConfig(idpID)
 }
 
 // getMetadata returns the authenticator metadata for GitHub OAuth authenticator.

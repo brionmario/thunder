@@ -40,4 +40,26 @@ function customRender(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>
   return render(ui, {wrapper: Providers, ...options});
 }
 
+/**
+ * Alternative render function with providers
+ * Alias for customRender to support different naming conventions
+ */
+export function renderWithProviders(ui: ReactElement, options?: RenderOptions) {
+  return customRender(ui, options ?? {});
+}
+
+/**
+ * Helper to get element by translation key
+ * Useful when using mocked translations that return keys
+ */
+export function getByTranslationKey(container: HTMLElement, key: string) {
+  return (
+    container.querySelector(`[data-testid="${key}"]`) ??
+    Array.from(container.querySelectorAll('*')).find((el) => el.textContent === key)
+  );
+}
+
+// Re-export everything from @testing-library/react
+export * from '@testing-library/react';
+
 export default customRender;

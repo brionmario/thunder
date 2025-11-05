@@ -18,9 +18,12 @@
 
 import {defineConfig} from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import {resolve} from 'path';
+import {resolve, dirname} from 'path';
+import {fileURLToPath} from 'url';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+import {visualizer} from 'rollup-plugin-visualizer';
 
+const currentDir = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5191;
 const HOST = process.env.HOST ?? 'localhost';
 const BASE_URL = process.env.BASE_URL ?? '/develop';
@@ -35,6 +38,13 @@ export default defineConfig({
         plugins: [['babel-plugin-react-compiler']],
       },
     }),
+    // Add visualizer plugin for bundle analysis (only in build mode)
+    visualizer({
+      filename: resolve(currentDir, 'dist', 'stats.html'),
+      open: process.env.ANALYZE === 'true',
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
   server: {
     port: PORT,
@@ -42,30 +52,24 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
-      '@/components': resolve(__dirname, './src/components'),
-      '@/layouts': resolve(__dirname, './src/layouts'),
-      '@/theme': resolve(__dirname, './src/theme'),
-      '@/contexts': resolve(__dirname, './src/contexts'),
-      '@/lib': resolve(__dirname, './src/lib'),
-      '@/hooks': resolve(__dirname, './src/hooks'),
-      '@/types': resolve(__dirname, './src/types'),
-      // Force using the same React instance to avoid "Invalid hook call" errors
-      // when using linked packages
-      react: resolve(__dirname, './node_modules/react'),
-      'react-dom': resolve(__dirname, './node_modules/react-dom'),
-      '@emotion/react': resolve(__dirname, './node_modules/@emotion/react'),
-      '@emotion/styled': resolve(__dirname, './node_modules/@emotion/styled'),
+      '@': resolve(currentDir, 'src'),
+      '@/components': resolve(currentDir, 'src', 'components'),
+      '@/layouts': resolve(currentDir, 'src', 'layouts'),
+      '@/theme': resolve(currentDir, 'src', 'theme'),
+      '@/contexts': resolve(currentDir, 'src', 'contexts'),
+      '@/lib': resolve(currentDir, 'src', 'lib'),
+      '@/hooks': resolve(currentDir, 'src', 'hooks'),
+      '@/types': resolve(currentDir, 'src', 'types'),
     },
   },
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
+    setupFiles: resolve(currentDir, 'src', 'test', 'setup.ts'),
     css: true,
     coverage: {
       provider: 'istanbul',
-      reporter: ['text', 'json', 'html', ['lcov', {projectRoot: '../../../'}]],
+      reporter: ['text', 'json', 'html', ['lcov', {projectRoot: resolve(currentDir, '..', '..', '..')}]],
       exclude: [
         'node_modules/',
         'dist/',

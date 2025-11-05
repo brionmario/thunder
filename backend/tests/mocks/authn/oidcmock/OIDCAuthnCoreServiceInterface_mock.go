@@ -374,6 +374,70 @@ func (_c *OIDCAuthnCoreServiceInterfaceMock_GetInternalUser_Call) RunAndReturn(r
 	return _c
 }
 
+// GetOAuthClientConfig provides a mock function for the type OIDCAuthnCoreServiceInterfaceMock
+func (_mock *OIDCAuthnCoreServiceInterfaceMock) GetOAuthClientConfig(idpID string) (*oauth.OAuthClientConfig, *serviceerror.ServiceError) {
+	ret := _mock.Called(idpID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOAuthClientConfig")
+	}
+
+	var r0 *oauth.OAuthClientConfig
+	var r1 *serviceerror.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(string) (*oauth.OAuthClientConfig, *serviceerror.ServiceError)); ok {
+		return returnFunc(idpID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string) *oauth.OAuthClientConfig); ok {
+		r0 = returnFunc(idpID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*oauth.OAuthClientConfig)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string) *serviceerror.ServiceError); ok {
+		r1 = returnFunc(idpID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*serviceerror.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOAuthClientConfig'
+type OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call struct {
+	*mock.Call
+}
+
+// GetOAuthClientConfig is a helper method to define mock.On call
+//   - idpID string
+func (_e *OIDCAuthnCoreServiceInterfaceMock_Expecter) GetOAuthClientConfig(idpID interface{}) *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call {
+	return &OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call{Call: _e.mock.On("GetOAuthClientConfig", idpID)}
+}
+
+func (_c *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call) Run(run func(idpID string)) *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call) Return(oAuthClientConfig *oauth.OAuthClientConfig, serviceError *serviceerror.ServiceError) *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call {
+	_c.Call.Return(oAuthClientConfig, serviceError)
+	return _c
+}
+
+func (_c *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call) RunAndReturn(run func(idpID string) (*oauth.OAuthClientConfig, *serviceerror.ServiceError)) *OIDCAuthnCoreServiceInterfaceMock_GetOAuthClientConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ValidateIDToken provides a mock function for the type OIDCAuthnCoreServiceInterfaceMock
 func (_mock *OIDCAuthnCoreServiceInterfaceMock) ValidateIDToken(idpID string, idToken string) *serviceerror.ServiceError {
 	ret := _mock.Called(idpID, idToken)

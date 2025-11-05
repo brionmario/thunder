@@ -34,6 +34,7 @@ import (
 	httpservice "github.com/asgardeo/thunder/internal/system/http"
 	"github.com/asgardeo/thunder/internal/system/log"
 	systemutils "github.com/asgardeo/thunder/internal/system/utils"
+	"github.com/asgardeo/thunder/internal/user"
 )
 
 const loggerComponentName = "OAuthExecutor"
@@ -77,11 +78,12 @@ func NewOAuthExecutor(id, name string, defaultInputs []flowmodel.InputData, prop
 		LogoutEndpoint:        oAuthProps.LogoutEndpoint,
 		JwksEndpoint:          oAuthProps.JwksEndpoint,
 	}
-	authService := authnoauth.NewOAuthAuthnService(
-		httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout),
-		idp.NewIDPService(),
-		endpoints,
-	)
+
+	// TODO: Should be injected when moving executors to di pattern.
+	httpClient := httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout)
+	idpSvc := idp.NewIDPService()
+	userSvc := user.GetUserService()
+	authService := authnoauth.NewOAuthAuthnService(httpClient, idpSvc, userSvc, endpoints)
 
 	return NewOAuthExecutorWithAuthService(id, name, defaultInputs, properties, oAuthProps, authService)
 }

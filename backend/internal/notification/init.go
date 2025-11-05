@@ -27,12 +27,13 @@ import (
 )
 
 // Initialize creates and configures the notification service components.
-func Initialize(mux *http.ServeMux, jwtService jwt.JWTServiceInterface) NotificationSenderMgtSvcInterface {
+func Initialize(mux *http.ServeMux, jwtService jwt.JWTServiceInterface) (
+	NotificationSenderMgtSvcInterface, OTPServiceInterface) {
 	mgtService := newNotificationSenderMgtService()
 	otpService := newOTPService(mgtService, jwtService)
 	handler := newMessageNotificationSenderHandler(mgtService, otpService)
 	registerRoutes(mux, handler)
-	return mgtService
+	return mgtService, otpService
 }
 
 // registerRoutes registers the HTTP routes for notification services.

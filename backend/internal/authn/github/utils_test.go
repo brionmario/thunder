@@ -165,3 +165,70 @@ func (suite *GithubUtilsTestSuite) TestSendUserEmailRequestErrorResponse() {
 		})
 	}
 }
+
+func (suite *GithubUtilsTestSuite) TestSendUserEmailRequestNon200LargeBody() {
+	// Create a body larger than 4096 bytes to exercise io.LimitReader path
+	largeBody := bytes.Repeat([]byte("x"), 5000)
+	resp := &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       io.NopCloser(bytes.NewReader(largeBody)),
+	}
+
+	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
+	fresh := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	fresh.On("Do", req).Return(resp, nil)
+
+	emails, err := sendUserEmailRequest(req, fresh, suite.logger)
+	suite.Nil(emails)
+	suite.NotNil(err)
+}
+
+func (suite *GithubUtilsTestSuite) TestSendUserEmailRequestDoReturnsRespAndError() {
+	// If Do returns an error (even if resp is non-nil), the function should return an error
+	emailData := []map[string]interface{}{{"email": "a@b.com", "primary": true}}
+	emailJSON, _ := json.Marshal(emailData)
+	resp := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(emailJSON))}
+
+	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
+	fresh := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	fresh.On("Do", req).Return(resp, errors.New("network failure"))
+
+	emails, err := sendUserEmailRequest(req, fresh, suite.logger)
+	suite.Nil(emails)
+	suite.NotNil(err)
+}
+
+func (suite *GithubUtilsTestSuite) TestBuildUserEmailRequestError() {
+	// Use an invalid URL containing a control character to force NewRequest to fail.
+	endpoint := "http://\x00"
+	req, err := buildUserEmailRequest(endpoint, "token", suite.logger)
+	suite.Nil(req)
+	suite.NotNil(err)
+}
+
+type badCloseReadCloser struct {
+	io.Reader
+}
+
+func (b badCloseReadCloser) Close() error { return errors.New("close failed") }
+
+func (suite *GithubUtilsTestSuite) TestSendUserEmailRequestCloseError() {
+	emailData := []map[string]interface{}{
+		{"email": "test@example.com", "primary": true},
+	}
+	emailJSON, _ := json.Marshal(emailData)
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       badCloseReadCloser{bytes.NewReader(emailJSON)},
+	}
+
+	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
+	fresh := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	fresh.On("Do", req).Return(resp, nil)
+
+	emails, err := sendUserEmailRequest(req, fresh, suite.logger)
+	suite.Nil(err)
+	suite.NotNil(emails)
+	suite.Len(emails, 1)
+}

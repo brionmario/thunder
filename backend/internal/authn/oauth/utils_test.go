@@ -21,6 +21,7 @@ package oauth
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -536,4 +537,91 @@ func (suite *OAuthUtilsTestSuite) TestGetStringUserClaimValueWithMissingOrInvali
 			suite.Empty(result)
 		})
 	}
+}
+
+func (suite *OAuthUtilsTestSuite) TestParseIDPConfigWithLogoutAndJwks() {
+	clientIDProp, _ := cmodels.NewProperty("client_id", "test_client", false)
+	scopesProp, _ := cmodels.NewProperty("scopes", "openid,profile", false)
+	logoutProp, _ := cmodels.NewProperty("logout_endpoint", "https://localhost:8090/logout", false)
+	jwksProp, _ := cmodels.NewProperty("jwks_endpoint", "https://localhost:8090/jwks", false)
+
+	idpDTO := &idp.IDPDTO{
+		Properties: []cmodels.Property{
+			*clientIDProp,
+			*scopesProp,
+			*logoutProp,
+			*jwksProp,
+		},
+	}
+
+	cfg, err := parseIDPConfig(idpDTO)
+	suite.Nil(err)
+	suite.NotNil(cfg)
+	suite.Equal("https://localhost:8090/logout", cfg.OAuthEndpoints.LogoutEndpoint)
+	suite.Equal("https://localhost:8090/jwks", cfg.OAuthEndpoints.JwksEndpoint)
+}
+
+// badCloseReadCloser returns data but Close returns an error to exercise defer close error handling.
+type badCloseReadCloser struct {
+	io.Reader
+}
+
+func (b badCloseReadCloser) Close() error { return errors.New("close failed") }
+
+// badReadCloser returns an error on Read to simulate a failing response body read.
+type badReadCloser struct{}
+
+func (b badReadCloser) Read(p []byte) (int, error) { return 0, errors.New("read failed") }
+func (b badReadCloser) Close() error               { return nil }
+
+func (suite *OAuthUtilsTestSuite) TestSendUserInfoRequestReadErrorAndDoReturnsRespAndError() {
+	logger := log.GetLogger()
+
+	// Case: Do returns resp and an error
+	userInfo := map[string]interface{}{"sub": "u1"}
+	body, _ := json.Marshal(userInfo)
+	resp := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(body))}
+
+	mockHTTPClient := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	req, _ := http.NewRequest("GET", "https://localhost:8090/userinfo", nil)
+	mockHTTPClient.On("Do", req).Return(resp, errors.New("network issue"))
+
+	got, err := sendUserInfoRequest(req, mockHTTPClient, logger)
+	suite.Nil(got)
+	suite.NotNil(err)
+
+	// Case: response body Read returns error
+	resp2 := &http.Response{StatusCode: http.StatusOK, Body: badReadCloser{}}
+	mockHTTPClient2 := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	mockHTTPClient2.On("Do", req).Return(resp2, nil)
+
+	got2, err2 := sendUserInfoRequest(req, mockHTTPClient2, logger)
+	suite.Nil(got2)
+	suite.NotNil(err2)
+}
+
+func (suite *OAuthUtilsTestSuite) TestSendTokenRequestCloseErrorAndDoReturnsRespAndError() {
+	logger := log.GetLogger()
+
+	// Successful token response but Close returns error (should not cause function to return error)
+	tokenResp := TokenResponse{AccessToken: "atoken", TokenType: "Bearer"}
+	b, _ := json.Marshal(tokenResp)
+	resp := &http.Response{StatusCode: http.StatusOK, Body: badCloseReadCloser{bytes.NewReader(b)}}
+
+	req, _ := http.NewRequest("POST", "https://localhost:8090/token", nil)
+	mockHTTPClient := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	mockHTTPClient.On("Do", req).Return(resp, nil)
+
+	got, err := sendTokenRequest(req, mockHTTPClient, logger)
+	suite.NotNil(got)
+	suite.Nil(err)
+
+	// Do returns resp and error -> should return error
+	resp2 := &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(b))}
+	mockHTTPClient2 := httpmock.NewHTTPClientInterfaceMock(suite.T())
+	mockHTTPClient2.On("Do", req).Return(resp2, errors.New("network"))
+
+	got2, err2 := sendTokenRequest(req, mockHTTPClient2, logger)
+	suite.Nil(got2)
+	suite.NotNil(err2)
 }

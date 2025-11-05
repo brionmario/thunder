@@ -78,6 +78,9 @@ catalogs:
     glob:
       specifier: ^11.0.3
       version: 11.0.3
+    i18next:
+      specifier: ^25.6.0
+      version: 25.6.0
     jsdom:
       specifier: ^27.0.1
       version: 27.0.1
@@ -108,6 +111,9 @@ catalogs:
     rolldown:
       specifier: ^1.0.0-beta.45
       version: 1.0.0-beta.45
+    rollup-plugin-visualizer:
+      specifier: ^6.0.5
+      version: 6.0.5
     tslib:
       specifier: ^2.8.1
       version: 2.8.1
@@ -197,6 +203,9 @@ importers:
       '@thunder/commons-contexts':
         specifier: workspace:^
         version: link:../../packages/thunder-commons-contexts
+      '@thunder/i18n':
+        specifier: workspace:^
+        version: link:../../packages/thunder-i18n
       '@thunder/ui':
         specifier: workspace:^
         version: link:../../packages/thunder-ui
@@ -209,6 +218,9 @@ importers:
       dayjs:
         specifier: 'catalog:'
         version: 1.11.18
+      i18next:
+        specifier: 'catalog:'
+        version: 25.6.0(typescript@5.9.3)
       lucide-react:
         specifier: 'catalog:'
         version: 0.545.0(react@19.2.0)
@@ -270,6 +282,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 27.0.1(postcss@8.5.6)
+      rollup-plugin-visualizer:
+        specifier: 'catalog:'
+        version: 6.0.5(rolldown@1.0.0-beta.45)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -580,6 +595,49 @@ importers:
       rimraf:
         specifier: 'catalog:'
         version: 6.0.1
+      rolldown:
+        specifier: 'catalog:'
+        version: 1.0.0-beta.45
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.7.2)(esbuild@0.25.12)(jsdom@27.0.1(postcss@8.5.6))(terser@5.44.0)(yaml@2.8.1)
+
+  packages/thunder-i18n:
+    dependencies:
+      i18next:
+        specifier: 'catalog:'
+        version: 25.6.0(typescript@5.9.3)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.0(react@19.2.0)
+      react-i18next:
+        specifier: 'catalog:'
+        version: 16.2.1(i18next@25.6.0(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+    devDependencies:
+      '@thunder/eslint-plugin-thunder':
+        specifier: workspace:^
+        version: link:../thunder-eslint-plugin
+      '@thunder/prettier-config':
+        specifier: workspace:^
+        version: link:../thunder-prettier-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.7.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.2
+      eslint:
+        specifier: 'catalog:'
+        version: 8.57.1
+      prettier:
+        specifier: 'catalog:'
+        version: 3.6.2
       rolldown:
         specifier: 'catalog:'
         version: 1.0.0-beta.45
@@ -5341,6 +5399,19 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
+  rollup-plugin-visualizer@6.0.5:
+    resolution: {integrity: sha512-9+HlNgKCVbJDs8tVtjQ43US12eqaiHyyiLMdBwQ7vSZPiHMysGNo2E88TAp1si5wx8NAoYriI2A5kuKfIakmJg==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      rolldown: 1.x || ^1.0.0-beta
+      rollup: 2.x || 3.x || 4.x
+    peerDependenciesMeta:
+      rolldown:
+        optional: true
+      rollup:
+        optional: true
+
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
 
@@ -5473,6 +5544,10 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
+
+  source-map@0.7.6:
+    resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
+    engines: {node: '>= 12'}
 
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
@@ -11295,6 +11370,15 @@ snapshots:
       '@rolldown/binding-win32-ia32-msvc': 1.0.0-beta.45
       '@rolldown/binding-win32-x64-msvc': 1.0.0-beta.45
 
+  rollup-plugin-visualizer@6.0.5(rolldown@1.0.0-beta.45):
+    dependencies:
+      open: 8.4.2
+      picomatch: 4.0.3
+      source-map: 0.7.6
+      yargs: 17.7.2
+    optionalDependencies:
+      rolldown: 1.0.0-beta.45
+
   rrweb-cssom@0.8.0: {}
 
   run-parallel@1.2.0:
@@ -11445,6 +11529,8 @@ snapshots:
   source-map@0.5.7: {}
 
   source-map@0.6.1: {}
+
+  source-map@0.7.6: {}
 
   sprintf-js@1.0.3: {}
 

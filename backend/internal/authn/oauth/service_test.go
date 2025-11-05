@@ -607,6 +607,14 @@ func (suite *OAuthAuthnServiceTestSuite) TestGetInternalUserWithServiceError() {
 	}
 }
 
+func (suite *OAuthAuthnServiceTestSuite) TestGetMetadata() {
+	svcImpl, ok := suite.service.(*oAuthAuthnService)
+	suite.True(ok)
+
+	meta := svcImpl.getMetadata()
+	suite.Equal(common.AuthenticatorOAuth, meta.Name)
+}
+
 func (suite *OAuthAuthnServiceTestSuite) TestValidateTokenResponseSuccess() {
 	tokenResp := &TokenResponse{
 		AccessToken: "access_token_123",
@@ -643,4 +651,103 @@ func (suite *OAuthAuthnServiceTestSuite) TestValidateTokenResponseWithError() {
 			suite.Equal(ErrorInvalidTokenResponse.Code, err.Code)
 		})
 	}
+}
+
+func (suite *OAuthAuthnServiceTestSuite) TestValidateClientConfigAndDefaults() {
+	svcImpl, ok := suite.service.(*oAuthAuthnService)
+	suite.True(ok)
+
+	// Missing required fields -> error
+	badConfig := &OAuthClientConfig{}
+	err := svcImpl.validateClientConfig(badConfig)
+	suite.NotNil(err)
+
+	// Provide required fields but leave endpoints empty -> defaults should be set
+	goodConfig := &OAuthClientConfig{
+		ClientID:     "c",
+		ClientSecret: "s",
+		RedirectURI:  "https://app/cb",
+		Scopes:       []string{"openid"},
+	}
+
+	// ensure endpoints on svcImpl are set in setup
+	err2 := svcImpl.validateClientConfig(goodConfig)
+	suite.Nil(err2)
+	suite.Equal(suite.endpoints.AuthorizationEndpoint, goodConfig.OAuthEndpoints.AuthorizationEndpoint)
+	suite.Equal(suite.endpoints.TokenEndpoint, goodConfig.OAuthEndpoints.TokenEndpoint)
+	suite.Equal(suite.endpoints.UserInfoEndpoint, goodConfig.OAuthEndpoints.UserInfoEndpoint)
+}
+
+func (suite *OAuthAuthnServiceTestSuite) TestBuildAuthorizeURLURIError() {
+	// Create idp DTO with invalid authorization endpoint so GetURIWithQueryParams fails
+	clientIDProp, _ := cmodels.NewProperty("client_id", "test_client_id", false)
+	clientSecretProp, _ := cmodels.NewProperty("client_secret", "test_client_secret", false)
+	redirectURIProp, _ := cmodels.NewProperty("redirect_uri", "https://app.example.com/callback", false)
+	scopesProp, _ := cmodels.NewProperty("scopes", "openid profile", false)
+	authzEndpointProp, _ := cmodels.NewProperty("authorization_endpoint", "://invalid-url", false)
+
+	idpDTO := &idp.IDPDTO{
+		ID:   testIDPID,
+		Name: "Test OAuth Provider",
+		Type: idp.IDPTypeOAuth,
+		Properties: []cmodels.Property{
+			*clientIDProp, *clientSecretProp, *redirectURIProp, *scopesProp, *authzEndpointProp,
+		},
+	}
+	suite.mockIDPService.On("GetIdentityProvider", testIDPID).Return(idpDTO, nil)
+
+	url, err := suite.service.BuildAuthorizeURL(testIDPID)
+	suite.Empty(url)
+	suite.NotNil(err)
+	suite.Equal(ErrorUnexpectedServerError.Code, err.Code)
+}
+
+func (suite *OAuthAuthnServiceTestSuite) TestExchangeCodeForTokenWithValidationFailure() {
+	// Prepare IDP data
+	clientIDProp, _ := cmodels.NewProperty("client_id", "test_client", false)
+	clientSecretProp, _ := cmodels.NewProperty("client_secret", "test_secret", false)
+	redirectURIProp, _ := cmodels.NewProperty("redirect_uri", "https://app.com/callback", false)
+	scopesProp, _ := cmodels.NewProperty("scopes", "openid", false)
+	tokenEndpointProp, _ := cmodels.NewProperty("token_endpoint", "https://idp.com/token", false)
+
+	idpData := &idp.IDPDTO{
+		ID:   testIDPID,
+		Name: "Test IDP",
+		Type: idp.IDPTypeOAuth,
+		Properties: []cmodels.Property{
+			*clientIDProp, *clientSecretProp, *redirectURIProp, *scopesProp, *tokenEndpointProp,
+		},
+	}
+
+	// token response with empty access_token to force validation failure
+	tokenRespJSON := `{"access_token":"","token_type":"Bearer"}`
+	resp := &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(bytes.NewReader([]byte(tokenRespJSON))),
+	}
+
+	suite.mockIDPService.On("GetIdentityProvider", testIDPID).Return(idpData, nil).Once()
+	suite.mockHTTPClient.On("Do", mock.Anything).Return(resp, nil).Once()
+
+	result, err := suite.service.ExchangeCodeForToken(testIDPID, "code123", true)
+	suite.Nil(result)
+	suite.NotNil(err)
+	suite.Equal(ErrorInvalidTokenResponse.Code, err.Code)
+}
+
+func (suite *OAuthAuthnServiceTestSuite) TestFetchUserInfoWithClientConfigMissingEndpoint() {
+	config := &OAuthClientConfig{
+		ClientID:     "test_client_id",
+		ClientSecret: "test_client_secret",
+		RedirectURI:  "https://app.example.com/callback",
+		Scopes:       []string{"openid", "profile"},
+		OAuthEndpoints: OAuthEndpoints{
+			UserInfoEndpoint: "",
+		},
+	}
+
+	userInfo, err := suite.service.FetchUserInfoWithClientConfig(config, "access_token")
+	suite.Nil(userInfo)
+	suite.NotNil(err)
+	suite.Equal(ErrorUnexpectedServerError.Code, err.Code)
 }

@@ -40,18 +40,24 @@ type credentialsAuthnService struct {
 	userService user.UserServiceInterface
 }
 
-// NewCredentialsAuthnService creates a new instance of credentials authenticator service.
-func NewCredentialsAuthnService(userSvc user.UserServiceInterface) CredentialsAuthnServiceInterface {
-	if userSvc == nil {
-		userSvc = user.GetUserService()
-	}
-
+// newCredentialsAuthnService creates a new instance of credentials authenticator service.
+func newCredentialsAuthnService(userSvc user.UserServiceInterface) CredentialsAuthnServiceInterface {
 	service := &credentialsAuthnService{
 		userService: userSvc,
 	}
 	common.RegisterAuthenticator(service.getMetadata())
 
 	return service
+}
+
+// NewCredentialsAuthnService creates a new instance of credentials authenticator service.
+// [Deprecated: use dependency injection to get the instance instead].
+// TODO: Should be removed when executors are migrated to di pattern.
+func NewCredentialsAuthnService(userSvc user.UserServiceInterface) CredentialsAuthnServiceInterface {
+	if userSvc == nil {
+		userSvc = user.GetUserService()
+	}
+	return newCredentialsAuthnService(userSvc)
 }
 
 // Authenticate authenticates a user using credentials.

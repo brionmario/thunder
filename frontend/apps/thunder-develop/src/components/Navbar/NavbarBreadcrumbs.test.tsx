@@ -34,7 +34,7 @@ describe('NavbarBreadcrumbs', () => {
   it('renders breadcrumbs with category and page text', async () => {
     const mockUseNavigation = await import('@/layouts/contexts/useNavigation');
     vi.mocked(mockUseNavigation.default).mockReturnValue({
-      currentPage: 'home',
+      currentPage: 'dashboard',
       setCurrentPage: vi.fn(),
       sidebarOpen: false,
       setSidebarOpen: vi.fn(),
@@ -44,7 +44,7 @@ describe('NavbarBreadcrumbs', () => {
     render(<NavbarBreadcrumbs />);
 
     expect(screen.getByText('Develop')).toBeInTheDocument();
-    expect(screen.getByText('home')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
   it('renders breadcrumbs with different category and page', async () => {
@@ -60,7 +60,7 @@ describe('NavbarBreadcrumbs', () => {
     render(<NavbarBreadcrumbs />);
 
     expect(screen.getByText('Develop')).toBeInTheDocument();
-    expect(screen.getByText('users')).toBeInTheDocument();
+    expect(screen.getByText('Users')).toBeInTheDocument();
   });
 
   it('has correct aria-label', async () => {
@@ -82,7 +82,7 @@ describe('NavbarBreadcrumbs', () => {
   it('renders separator icon between breadcrumbs', async () => {
     const mockUseNavigation = await import('@/layouts/contexts/useNavigation');
     vi.mocked(mockUseNavigation.default).mockReturnValue({
-      currentPage: 'home',
+      currentPage: 'dashboard',
       setCurrentPage: vi.fn(),
       sidebarOpen: false,
       setSidebarOpen: vi.fn(),

@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/asgardeo/thunder/internal/application"
+	"github.com/asgardeo/thunder/internal/authn"
 	"github.com/asgardeo/thunder/internal/authz"
 	"github.com/asgardeo/thunder/internal/cert"
 	"github.com/asgardeo/thunder/internal/flow/flowexec"
@@ -57,8 +58,9 @@ func registerServices(mux *http.ServeMux) {
 	roleService := role.Initialize(mux, userService, groupService, ouService)
 	_ = authz.Initialize(roleService)
 
-	_ = idp.Initialize(mux)
-	_ = notification.Initialize(mux, jwtService)
+	idpService := idp.Initialize(mux)
+	_, otpService := notification.Initialize(mux, jwtService)
+
 	flowMgtService, err := flowmgt.Initialize()
 	if err != nil {
 		logger.Fatal("Failed to initialize FlowMgtService", log.Error(err))
@@ -71,12 +73,12 @@ func registerServices(mux *http.ServeMux) {
 	// Initialize OAuth services.
 	oauth.Initialize(mux, applicationService, userService, jwtService, flowExecService)
 
+	// Initialize authentication services.
+	_, _ = authn.Initialize(mux, idpService, jwtService, userService, otpService)
+
 	// TODO: Legacy way of initializing services. These need to be refactored in the future aligning to the
 	// dependency injection pattern used above.
 
 	// Register the health service.
 	services.NewHealthCheckService(mux)
-
-	// Register the authentication service.
-	services.NewAuthenticationService(mux)
 }

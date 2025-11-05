@@ -36,11 +36,13 @@ import {
   Snackbar,
 } from '@wso2/oxygen-ui';
 import {ArrowLeft, Plus, Save, X} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
 import useCreateUserType from '../api/useCreateUserType';
 import type {PropertyDefinition, UserSchemaDefinition, UIPropertyType, SchemaPropertyInput} from '../types/user-types';
 
 export default function CreateUserTypePage() {
   const navigate = useNavigate();
+  const {t} = useTranslation();
   const {createUserType, loading, error: createError} = useCreateUserType();
 
   const [name, setName] = useState('');
@@ -136,14 +138,14 @@ export default function CreateUserTypePage() {
 
     // Validate
     if (!name.trim()) {
-      setValidationError('Please enter a user type name');
+      setValidationError(t('userTypes:validationErrors.nameRequired'));
       setSnackbarOpen(true);
       return;
     }
 
     const validProperties = properties.filter((prop) => prop.name.trim());
     if (validProperties.length === 0) {
-      setValidationError('Please add at least one property');
+      setValidationError(t('userTypes:validationErrors.propertiesRequired'));
       setSnackbarOpen(true);
       return;
     }
@@ -152,7 +154,7 @@ export default function CreateUserTypePage() {
     const propertyNames = validProperties.map((prop) => prop.name.trim());
     const duplicates = propertyNames.filter((propName, index) => propertyNames.indexOf(propName) !== index);
     if (duplicates.length > 0) {
-      setValidationError(`Duplicate property names found: ${duplicates.join(', ')}`);
+      setValidationError(t('userTypes:validationErrors.duplicateProperties', {duplicates: duplicates.join(', ')}));
       setSnackbarOpen(true);
       return;
     }
@@ -233,16 +235,16 @@ export default function CreateUserTypePage() {
         aria-label="Go back"
         startIcon={<ArrowLeft size={16} />}
       >
-        Back
+        {t('common:actions.back')}
       </Button>
 
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={4} gap={2}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            Create User Type
+            {t('userTypes:addUserType')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Define a new user type for your organization
+            {t('userTypes:createDescription')}
           </Typography>
         </Box>
       </Stack>
@@ -259,24 +261,24 @@ export default function CreateUserTypePage() {
         >
           <FormControl fullWidth sx={{mb: 3}}>
             <FormLabel htmlFor="name">
-              User Type Name <span style={{color: 'red'}}>*</span>
+              {t('userTypes:typeName')} <span style={{color: 'red'}}>*</span>
             </FormLabel>
             <TextField
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Employee, Customer, Partner"
+              placeholder={t('userTypes:typeNamePlaceholder')}
               required
               variant="outlined"
             />
           </FormControl>
 
           <Typography variant="h6" gutterBottom sx={{mt: 4, mb: 2}}>
-            User Type Attributes
+            {t('userTypes:schemaProperties')}
           </Typography>
 
           {properties.map((property) => (
-            <Paper key={property.id} variant="outlined" sx={{px: 2, pt: 2, pb: 4, mb: 2}}>
+            <Paper key={property.id} variant="outlined" sx={{px: 2, py: 4, mb: 2}}>
               {properties.length > 1 && (
                 <Stack direction="row" justifyContent="flex-end" alignItems="center">
                   <IconButton size="small" color="error" onClick={() => handleRemoveProperty(property.id)}>
@@ -286,28 +288,28 @@ export default function CreateUserTypePage() {
               )}
               <Box sx={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2}}>
                 <FormControl>
-                  <FormLabel>Attribute Name</FormLabel>
+                  <FormLabel>{t('userTypes:propertyName')}</FormLabel>
                   <TextField
                     value={property.name}
                     onChange={(e) => handlePropertyChange(property.id, 'name', e.target.value)}
-                    placeholder="e.g., email, age, address"
+                    placeholder={t('userTypes:propertyNamePlaceholder')}
                     size="small"
                   />
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>{t('userTypes:propertyType')}</FormLabel>
                   <Select
                     value={property.type}
                     onChange={(e) => handlePropertyChange(property.id, 'type', e.target.value as UIPropertyType)}
                     size="small"
                   >
-                    <MenuItem value="string">String</MenuItem>
-                    <MenuItem value="number">Number</MenuItem>
-                    <MenuItem value="boolean">Boolean</MenuItem>
-                    <MenuItem value="enum">Enum</MenuItem>
-                    <MenuItem value="array">Array</MenuItem>
-                    <MenuItem value="object">Object</MenuItem>
+                    <MenuItem value="string">{t('userTypes:types.string')}</MenuItem>
+                    <MenuItem value="number">{t('userTypes:types.number')}</MenuItem>
+                    <MenuItem value="boolean">{t('userTypes:types.boolean')}</MenuItem>
+                    <MenuItem value="enum">{t('userTypes:types.enum')}</MenuItem>
+                    <MenuItem value="array">{t('userTypes:types.array')}</MenuItem>
+                    <MenuItem value="object">{t('userTypes:types.object')}</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -320,7 +322,7 @@ export default function CreateUserTypePage() {
                       onChange={(e) => handlePropertyChange(property.id, 'required', e.target.checked)}
                     />
                   }
-                  label="Required"
+                  label={t('common:form.required')}
                 />
                 {(property.type === 'string' || property.type === 'number' || property.type === 'enum') && (
                   <FormControlLabel
@@ -330,18 +332,18 @@ export default function CreateUserTypePage() {
                         onChange={(e) => handlePropertyChange(property.id, 'unique', e.target.checked)}
                       />
                     }
-                    label="Unique"
+                    label={t('userTypes:unique')}
                   />
                 )}
               </Box>
 
               {property.type === 'string' && (
                 <FormControl fullWidth sx={{mt: 2}}>
-                  <FormLabel>Regular Expression Pattern (Optional)</FormLabel>
+                  <FormLabel>{t('userTypes:regexPattern')}</FormLabel>
                   <TextField
                     value={property.regex}
                     onChange={(e) => handlePropertyChange(property.id, 'regex', e.target.value)}
-                    placeholder="e.g., ^[a-zA-Z0-9]+$"
+                    placeholder={t('userTypes:regexPlaceholder')}
                     size="small"
                   />
                 </FormControl>
@@ -349,7 +351,7 @@ export default function CreateUserTypePage() {
 
               {property.type === 'enum' && (
                 <FormControl fullWidth sx={{mt: 2}}>
-                  <FormLabel>Enum Values</FormLabel>
+                  <FormLabel>{t('userTypes:enumValues')}</FormLabel>
                   <Box sx={{display: 'flex', gap: 1}}>
                     <TextField
                       value={enumInput[property.id] ?? ''}
@@ -360,12 +362,12 @@ export default function CreateUserTypePage() {
                           handleAddEnumValue(property.id);
                         }
                       }}
-                      placeholder="Add value and press Enter"
+                      placeholder={t('userTypes:enumPlaceholder')}
                       size="small"
                       fullWidth
                     />
                     <Button variant="outlined" size="small" onClick={() => handleAddEnumValue(property.id)}>
-                      Add
+                      {t('common:actions.add')}
                     </Button>
                   </Box>
                   {property.enum.length > 0 && (
@@ -404,7 +406,7 @@ export default function CreateUserTypePage() {
           ))}
 
           <Button variant="outlined" startIcon={<Plus size={16} />} onClick={handleAddProperty} sx={{mb: 3}}>
-            Add Attribute
+            {t('userTypes:addProperty')}
           </Button>
 
           {createError && (
@@ -427,10 +429,10 @@ export default function CreateUserTypePage() {
               disabled={loading}
               startIcon={<X size={16} />}
             >
-              Cancel
+              {t('common:actions.cancel')}
             </Button>
             <Button type="submit" variant="contained" disabled={loading} startIcon={<Save size={16} />}>
-              {loading ? 'Creating...' : 'Create User Type'}
+              {loading ? t('common:status.saving') : t('userTypes:createUserType')}
             </Button>
           </Stack>
         </Box>

@@ -39,7 +39,7 @@ import (
 type AuthenticationHandlerTestSuite struct {
 	suite.Suite
 	mockService *AuthenticationServiceInterfaceMock
-	handler     *AuthenticationHandler
+	handler     *authenticationHandler
 }
 
 func TestAuthenticationHandlerTestSuite(t *testing.T) {
@@ -48,7 +48,7 @@ func TestAuthenticationHandlerTestSuite(t *testing.T) {
 
 func (suite *AuthenticationHandlerTestSuite) SetupTest() {
 	suite.mockService = NewAuthenticationServiceInterfaceMock(suite.T())
-	suite.handler = &AuthenticationHandler{
+	suite.handler = &authenticationHandler{
 		authService: suite.mockService,
 	}
 }
@@ -257,7 +257,7 @@ func (suite *AuthenticationHandlerTestSuite) TestHandleCredentialsAuthRequestSer
 		suite.T().Run(tc.name, func(t *testing.T) {
 			m := NewAuthenticationServiceInterfaceMock(t)
 			m.On("AuthenticateWithCredentials", mock.Anything, mock.Anything, mock.Anything).Return(nil, tc.serviceError)
-			h := &AuthenticationHandler{authService: m}
+			h := &authenticationHandler{authService: m}
 
 			body, _ := json.Marshal(tc.authRequest)
 			req := httptest.NewRequest(http.MethodPost, "/authenticate/credentials", bytes.NewReader(body))

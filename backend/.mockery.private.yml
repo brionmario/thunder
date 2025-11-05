@@ -83,3 +83,11 @@ packages:
       structname: '{{.InterfaceName}}Mock'
       pkgname: userschema
       filename: "{{.InterfaceName}}_mock_test.go"
+
+  github.com/asgardeo/thunder/internal/group:
+    config:
+      all: true
+      dir: internal/group
+      structname: '{{.InterfaceName}}Mock'
+      pkgname: group
+      filename: "{{.InterfaceName}}_mock_test.go"

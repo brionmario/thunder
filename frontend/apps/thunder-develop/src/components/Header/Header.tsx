@@ -20,11 +20,14 @@ import {Stack, Tooltip} from '@wso2/oxygen-ui';
 import {ColorModeToggle} from '@wso2/oxygen-ui/ColorModeToggle';
 import type {JSX} from 'react';
 import {Bell, Monitor, Moon, Sun} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
 import NavbarBreadcrumbs from '../Navbar/NavbarBreadcrumbs';
 import MenuButton from '../Sidebar/MenuButton';
 import Search from './Search';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Header(): JSX.Element {
+  const {t} = useTranslation();
   return (
     <Stack
       direction="row"
@@ -33,7 +36,7 @@ export default function Header(): JSX.Element {
         width: '100%',
         alignItems: {xs: 'flex-start', md: 'center'},
         justifyContent: 'space-between',
-        maxWidth: {sm: '100%', md: '1700px'},
+        maxWidth: {sm: '100%'},
         pt: 1.5,
         px: 3,
       }}
@@ -42,11 +45,12 @@ export default function Header(): JSX.Element {
       <NavbarBreadcrumbs />
       <Stack direction="row" sx={{gap: 1}}>
         <Search />
-        <Tooltip title="Coming soon">
-          <MenuButton showBadge aria-label="Open notifications">
+        <Tooltip title={t('common:header.notifications')}>
+          <MenuButton showBadge aria-label={t('common:header.openNotifications')}>
             <Bell strokeWidth={1} />
           </MenuButton>
         </Tooltip>
+        <LanguageSwitcher />
         <ColorModeToggle
           data-testid="theme-toggle"
           darkModeIcon={<Moon strokeWidth={1} />}

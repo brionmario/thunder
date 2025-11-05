@@ -52,7 +52,21 @@ type otpAuthnService struct {
 	userService user.UserServiceInterface
 }
 
+// newOTPAuthnService creates a new instance of OTPAuthnService.
+func newOTPAuthnService(otpSvc notification.OTPServiceInterface,
+	userSvc user.UserServiceInterface) OTPAuthnServiceInterface {
+	service := &otpAuthnService{
+		otpService:  otpSvc,
+		userService: userSvc,
+	}
+	common.RegisterAuthenticator(service.getMetadata())
+
+	return service
+}
+
 // NewOTPAuthnService creates a new instance of OTPAuthnService.
+// [Deprecated: use dependency injection to get the instance instead].
+// TODO: Should be removed when executors are migrated to di pattern.
 func NewOTPAuthnService(otpSvc notification.OTPServiceInterface,
 	userSvc user.UserServiceInterface) OTPAuthnServiceInterface {
 	if otpSvc == nil {
@@ -62,13 +76,7 @@ func NewOTPAuthnService(otpSvc notification.OTPServiceInterface,
 		userSvc = user.GetUserService()
 	}
 
-	service := &otpAuthnService{
-		otpService:  otpSvc,
-		userService: userSvc,
-	}
-	common.RegisterAuthenticator(service.getMetadata())
-
-	return service
+	return newOTPAuthnService(otpSvc, userSvc)
 }
 
 // SendOTP sends an OTP to the specified recipient using the provided sender.

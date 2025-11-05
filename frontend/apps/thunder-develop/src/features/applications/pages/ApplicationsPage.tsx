@@ -17,16 +17,19 @@
  */
 
 import {Box, Typography, Paper} from '@wso2/oxygen-ui';
+import {useTranslation} from 'react-i18next';
 
 export default function ApplicationsPage() {
+  const {t} = useTranslation();
+
   return (
     <Box>
       <Box mb={4}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Applications
+          {t('applications:title')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage your applications and services
+          {t('applications:subtitle')}
         </Typography>
       </Box>
 
@@ -42,10 +45,10 @@ export default function ApplicationsPage() {
       >
         <Box>
           <Typography variant="h3" component="h2" gutterBottom color="text.secondary" fontWeight={500}>
-            Coming Soon
+            {t('applications:comingSoon')}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Applications management functionality will be available soon.
+            {t('applications:comingSoonDescription')}
           </Typography>
         </Box>
       </Paper>

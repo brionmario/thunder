@@ -42,9 +42,16 @@ type AuthAssertGeneratorInterface interface {
 // authAssertGenerator implements the AuthAssertGeneratorInterface.
 type authAssertGenerator struct{}
 
-// NewAuthAssertGenerator creates a new instance of AuthAssertGeneratorInterface.
-func NewAuthAssertGenerator() AuthAssertGeneratorInterface {
+// newAuthAssertGenerator creates a new instance of AuthAssertGeneratorInterface.
+func newAuthAssertGenerator() AuthAssertGeneratorInterface {
 	return &authAssertGenerator{}
+}
+
+// NewAuthAssertGenerator creates a new instance of AuthAssertGeneratorInterface.
+// [Deprecated: use dependency injection to get the instance instead].
+// TODO: Should be removed when executors are migrated to di pattern.
+func NewAuthAssertGenerator() AuthAssertGeneratorInterface {
+	return newAuthAssertGenerator()
 }
 
 // GenerateAssertion generates authenticator assertion based on the provided authenticators.

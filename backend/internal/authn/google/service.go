@@ -28,6 +28,7 @@ import (
 	authnoidc "github.com/asgardeo/thunder/internal/authn/oidc"
 	"github.com/asgardeo/thunder/internal/idp"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
+	syshttp "github.com/asgardeo/thunder/internal/system/http"
 	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/user"
@@ -48,26 +49,42 @@ type googleOIDCAuthnService struct {
 	jwtService jwt.JWTServiceInterface
 }
 
-// NewGoogleOIDCAuthnService creates a new instance of Google OIDC authenticator service.
-func NewGoogleOIDCAuthnService(oidcSvc authnoidc.OIDCAuthnServiceInterface) GoogleOIDCAuthnServiceInterface {
-	jwtSvc := jwt.GetJWTService()
-	if oidcSvc == nil {
-		oAuthSvc := authnoauth.NewOAuthAuthnService(nil, nil, authnoauth.OAuthEndpoints{
-			AuthorizationEndpoint: AuthorizeEndpoint,
-			TokenEndpoint:         TokenEndpoint,
-			UserInfoEndpoint:      UserInfoEndpoint,
-			JwksEndpoint:          JwksEndpoint,
-		})
-		oidcSvc = authnoidc.NewOIDCAuthnService(oAuthSvc, jwtSvc)
-	}
+// newGoogleOIDCAuthnService creates a new instance of Google OIDC authenticator service.
+func newGoogleOIDCAuthnService(idpSvc idp.IDPServiceInterface, userSvc user.UserServiceInterface,
+	jwtSvc jwt.JWTServiceInterface) GoogleOIDCAuthnServiceInterface {
+	httpClient := syshttp.NewHTTPClient()
+	internal := authnoidc.NewOIDCAuthnService(httpClient, idpSvc, userSvc, jwtSvc, authnoauth.OAuthEndpoints{
+		AuthorizationEndpoint: AuthorizeEndpoint,
+		TokenEndpoint:         TokenEndpoint,
+		UserInfoEndpoint:      UserInfoEndpoint,
+		JwksEndpoint:          JwksEndpoint,
+	})
 
 	service := &googleOIDCAuthnService{
-		internal:   oidcSvc,
+		internal:   internal,
 		jwtService: jwtSvc,
 	}
 	common.RegisterAuthenticator(service.getMetadata())
 
 	return service
+}
+
+// NewGoogleOIDCAuthnService creates a new instance of Google OIDC authenticator service.
+// [Deprecated: use dependency injection to get the instance instead].
+// TODO: Should be removed when executors are migrated to di pattern.
+func NewGoogleOIDCAuthnService(idpSvc idp.IDPServiceInterface, userSvc user.UserServiceInterface,
+	jwtSvc jwt.JWTServiceInterface) GoogleOIDCAuthnServiceInterface {
+	if idpSvc == nil {
+		idpSvc = idp.NewIDPService()
+	}
+	if userSvc == nil {
+		userSvc = user.GetUserService()
+	}
+	if jwtSvc == nil {
+		jwtSvc = jwt.GetJWTService()
+	}
+
+	return newGoogleOIDCAuthnService(idpSvc, userSvc, jwtSvc)
 }
 
 // BuildAuthorizeURL constructs the authorization request URL for Google OIDC authentication.
@@ -220,6 +237,12 @@ func (g *googleOIDCAuthnService) FetchUserInfo(idpID, accessToken string) (
 // GetInternalUser retrieves the internal user based on the external subject identifier.
 func (g *googleOIDCAuthnService) GetInternalUser(sub string) (*user.User, *serviceerror.ServiceError) {
 	return g.internal.GetInternalUser(sub)
+}
+
+// GetOAuthClientConfig retrieves and validates the OAuth client configuration for the given identity provider ID.
+func (g *googleOIDCAuthnService) GetOAuthClientConfig(idpID string) (
+	*authnoauth.OAuthClientConfig, *serviceerror.ServiceError) {
+	return g.internal.GetOAuthClientConfig(idpID)
 }
 
 // getMetadata returns the authenticator metadata for Google OIDC authenticator.

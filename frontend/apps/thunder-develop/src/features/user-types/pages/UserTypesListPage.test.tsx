@@ -51,13 +51,13 @@ describe('UserTypesListPage', () => {
   it('renders page title', () => {
     render(<UserTypesListPage />);
 
-    expect(screen.getByText('User Type Management')).toBeInTheDocument();
+    expect(screen.getByText('User Types')).toBeInTheDocument();
   });
 
   it('renders page description', () => {
     render(<UserTypesListPage />);
 
-    expect(screen.getByText('Define and manage user types for your organization')).toBeInTheDocument();
+    expect(screen.getByText('Define a new user type schema for your organization')).toBeInTheDocument();
   });
 
   it('renders create user type button', () => {

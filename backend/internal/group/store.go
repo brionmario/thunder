@@ -29,6 +29,8 @@ import (
 
 const storeLoggerComponentName = "GroupStore"
 
+var buildBulkGroupExistsQueryFunc = buildBulkGroupExistsQuery
+
 // groupStoreInterface defines the interface for group store operations.
 type groupStoreInterface interface {
 	GetGroupListCount() (int, error)
@@ -343,7 +345,7 @@ func (s *groupStore) ValidateGroupIDs(groupIDs []string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get database client: %w", err)
 	}
 
-	query, args, err := buildBulkGroupExistsQuery(groupIDs)
+	query, args, err := buildBulkGroupExistsQueryFunc(groupIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build bulk group exists query: %w", err)
 	}

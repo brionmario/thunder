@@ -20,12 +20,14 @@ import {useNavigate} from 'react-router';
 import {Box, Stack, Typography, TextField, Button, InputAdornment, Select, MenuItem} from '@wso2/oxygen-ui';
 import {useMemo, useState} from 'react';
 import {Plus, Search} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
 import UsersList from '../components/UsersList';
 import useGetUserSchemas from '../api/useGetUserSchemas';
 import type {SchemaInterface} from '../types/users';
 
 export default function UsersListPage() {
   const navigate = useNavigate();
+  const {t} = useTranslation();
 
   const [selectedSchema, setSelectedSchema] = useState<string>();
 
@@ -46,10 +48,10 @@ export default function UsersListPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            User Management
+            {t('users:title')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage users, roles, and permissions across your organization
+            {t('users:subtitle')}
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
@@ -65,7 +67,7 @@ export default function UsersListPage() {
               });
             }}
           >
-            Create User
+            {t('users:addUser')}
           </Button>
         </Stack>
       </Stack>
@@ -73,7 +75,7 @@ export default function UsersListPage() {
       {/* Search and Filters */}
       <Stack direction="row" spacing={2} mb={4} flexWrap="wrap" useFlexGap>
         <TextField
-          placeholder="Search users..."
+          placeholder={t('users:searchUsers')}
           size="small"
           sx={{flexGrow: 1, minWidth: 300}}
           InputProps={{
@@ -86,7 +88,7 @@ export default function UsersListPage() {
         />
         <Select
           id="user-type-select"
-          label="User Type"
+          label={t('userTypes:typeName')}
           value={selectedSchema ?? ''}
           size="small"
           sx={{minWidth: 200}}

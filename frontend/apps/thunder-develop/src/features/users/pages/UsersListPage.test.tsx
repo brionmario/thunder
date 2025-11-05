@@ -87,7 +87,7 @@ describe('UsersListPage', () => {
   it('renders create user button', () => {
     render(<UsersListPage />);
 
-    const createButton = screen.getByRole('button', {name: /create user/i});
+    const createButton = screen.getByRole('button', {name: /add user/i});
     expect(createButton).toBeInTheDocument();
   });
 
@@ -120,7 +120,7 @@ describe('UsersListPage', () => {
     const user = userEvent.setup();
     render(<UsersListPage />);
 
-    const createButton = screen.getByRole('button', {name: /create user/i});
+    const createButton = screen.getByRole('button', {name: /add user/i});
     await user.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/users/create');
@@ -190,7 +190,7 @@ describe('UsersListPage', () => {
   it('renders plus icon in create user button', () => {
     render(<UsersListPage />);
 
-    const createButton = screen.getByRole('button', {name: /create user/i});
+    const createButton = screen.getByRole('button', {name: /add user/i});
     // Check that button has an icon by checking for svg within the button
     const icon = createButton.querySelector('svg');
     expect(icon).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('UsersListPage', () => {
   it('create user button has contained variant', () => {
     render(<UsersListPage />);
 
-    const createButton = screen.getByRole('button', {name: /create user/i});
+    const createButton = screen.getByRole('button', {name: /add user/i});
     expect(createButton).toHaveClass('MuiButton-contained');
   });
 });

@@ -27,15 +27,13 @@ import (
 
 	authncm "github.com/asgardeo/thunder/internal/authn/common"
 	authngoogle "github.com/asgardeo/thunder/internal/authn/google"
-	authnoauth "github.com/asgardeo/thunder/internal/authn/oauth"
-	authnoidc "github.com/asgardeo/thunder/internal/authn/oidc"
 	"github.com/asgardeo/thunder/internal/executor/oauth/model"
 	"github.com/asgardeo/thunder/internal/executor/oidcauth"
 	flowconst "github.com/asgardeo/thunder/internal/flow/common/constants"
 	flowmodel "github.com/asgardeo/thunder/internal/flow/common/model"
 	"github.com/asgardeo/thunder/internal/idp"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
-	httpservice "github.com/asgardeo/thunder/internal/system/http"
+	"github.com/asgardeo/thunder/internal/system/jwt"
 	"github.com/asgardeo/thunder/internal/system/log"
 	"github.com/asgardeo/thunder/internal/user"
 )
@@ -65,11 +63,6 @@ func NewGoogleOIDCAuthExecutorFromProps(execProps flowmodel.ExecutorProperties,
 		Scopes:                oAuthProps.Scopes,
 		AdditionalParams:      oAuthProps.AdditionalParams,
 	}
-	endpoints := authnoauth.OAuthEndpoints{
-		AuthorizationEndpoint: compOAuthProps.AuthorizationEndpoint,
-		TokenEndpoint:         compOAuthProps.TokenEndpoint,
-		UserInfoEndpoint:      compOAuthProps.UserInfoEndpoint,
-	}
 
 	defaultInputs := []flowmodel.InputData{
 		{
@@ -84,13 +77,10 @@ func NewGoogleOIDCAuthExecutorFromProps(execProps flowmodel.ExecutorProperties,
 		},
 	}
 
-	oAuthSvc := authnoauth.NewOAuthAuthnService(
-		httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout),
-		idp.NewIDPService(),
-		endpoints,
-	)
-	oidcAuthSvc := authnoidc.NewOIDCAuthnService(oAuthSvc, nil)
-	authSvc := authngoogle.NewGoogleOIDCAuthnService(oidcAuthSvc)
+	idpSvc := idp.NewIDPService()
+	userSvc := user.GetUserService()
+	jwtSvc := jwt.GetJWTService()
+	authSvc := authngoogle.NewGoogleOIDCAuthnService(idpSvc, userSvc, jwtSvc)
 
 	base := oidcauth.NewOIDCAuthExecutor("google_oidc_auth_executor", execProps.Name,
 		defaultInputs, execProps.Properties, compOAuthProps)
@@ -120,11 +110,6 @@ func NewGoogleOIDCAuthExecutor(id, name string, properties map[string]string,
 		Scopes:                scopes,
 		AdditionalParams:      additionalParams,
 	}
-	endpoints := authnoauth.OAuthEndpoints{
-		AuthorizationEndpoint: oAuthProps.AuthorizationEndpoint,
-		TokenEndpoint:         oAuthProps.TokenEndpoint,
-		UserInfoEndpoint:      oAuthProps.UserInfoEndpoint,
-	}
 
 	defaultInputs := []flowmodel.InputData{
 		{
@@ -139,13 +124,11 @@ func NewGoogleOIDCAuthExecutor(id, name string, properties map[string]string,
 		},
 	}
 
-	oAuthSvc := authnoauth.NewOAuthAuthnService(
-		httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout),
-		idp.NewIDPService(),
-		endpoints,
-	)
-	oidcAuthSvc := authnoidc.NewOIDCAuthnService(oAuthSvc, nil)
-	authSvc := authngoogle.NewGoogleOIDCAuthnService(oidcAuthSvc)
+	// TODO: Should be injected when moving executors to di pattern.
+	idpSvc := idp.NewIDPService()
+	userSvc := user.GetUserService()
+	jwtSvc := jwt.GetJWTService()
+	authSvc := authngoogle.NewGoogleOIDCAuthnService(idpSvc, userSvc, jwtSvc)
 
 	base := oidcauth.NewOIDCAuthExecutor(id, name, defaultInputs, properties, oAuthProps)
 	exec, ok := base.(*oidcauth.OIDCAuthExecutor)

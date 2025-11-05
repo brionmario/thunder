@@ -244,9 +244,7 @@ describe('UserTypesList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Delete User Type')).toBeInTheDocument();
-      expect(
-        screen.getByText('Are you sure you want to delete this user type? This action cannot be undone.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Are you sure you want to delete this user type?')).toBeInTheDocument();
     });
   });
 
@@ -264,7 +262,7 @@ describe('UserTypesList', () => {
       expect(screen.getByText('Delete User Type')).toBeInTheDocument();
     });
 
-    const cancelButton = screen.getByRole('button', {name: /cancel/i});
+    const cancelButton = screen.getByRole('button', {name: /Cancel/i});
     await user.click(cancelButton);
 
     await waitFor(() => {
@@ -387,7 +385,7 @@ describe('UserTypesList', () => {
     await user.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Deleting...')).toBeInTheDocument();
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
   });
 

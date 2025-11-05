@@ -40,7 +40,7 @@ func TestGeneratorTestSuite(t *testing.T) {
 }
 
 func (suite *GeneratorTestSuite) SetupTest() {
-	suite.generator = NewAuthAssertGenerator()
+	suite.generator = newAuthAssertGenerator()
 
 	// Register all authenticators
 	authncm.RegisterAuthenticator(authncm.AuthenticatorMeta{

@@ -61,9 +61,9 @@ describe('CreateUserTypePage', () => {
   it('renders the page with initial form', () => {
     render(<CreateUserTypePage />);
 
-    expect(screen.getByRole('heading', {name: 'Create User Type'})).toBeInTheDocument();
-    expect(screen.getByText('Define a new user type for your organization')).toBeInTheDocument();
-    expect(screen.getByLabelText(/User Type Name/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Add User Type'})).toBeInTheDocument();
+    expect(screen.getByText('Define a new user type schema for your organization')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Type Name/i)).toBeInTheDocument();
   });
 
   it('navigates back when Back button is clicked', async () => {
@@ -82,7 +82,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const cancelButton = screen.getByRole('button', {name: /cancel/i});
+    const cancelButton = screen.getByRole('button', {name: /Cancel/i});
     await user.click(cancelButton);
 
     await waitFor(() => {
@@ -94,7 +94,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const nameInput = screen.getByLabelText(/User Type Name/i);
+    const nameInput = screen.getByLabelText(/Type Name/i);
     await user.type(nameInput, 'Employee');
 
     expect(nameInput).toHaveValue('Employee');
@@ -104,7 +104,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const addButton = screen.getByRole('button', {name: /add attribute/i});
+    const addButton = screen.getByRole('button', {name: /Add Property/i});
     await user.click(addButton);
   });
 
@@ -113,7 +113,7 @@ describe('CreateUserTypePage', () => {
     render(<CreateUserTypePage />);
 
     // Add a second property first
-    const addButton = screen.getByRole('button', {name: /add attribute/i});
+    const addButton = screen.getByRole('button', {name: /Add Property/i});
     await user.click(addButton);
 
     // Now remove the second property - find the X icon button
@@ -128,7 +128,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const propertyNameInput = screen.getByPlaceholderText(/e.g., email, age, address/i);
+    const propertyNameInput = screen.getByPlaceholderText(/e\.g\., email, age, address/i);
     await user.type(propertyNameInput, 'email');
 
     expect(propertyNameInput).toHaveValue('email');
@@ -153,7 +153,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -167,10 +167,10 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const nameInput = screen.getByLabelText(/User Type Name/i);
+    const nameInput = screen.getByLabelText(/Type Name/i);
     await user.type(nameInput, 'Employee');
 
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -184,26 +184,26 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const nameInput = screen.getByLabelText(/User Type Name/i);
+    const nameInput = screen.getByLabelText(/Type Name/i);
     await user.type(nameInput, 'Employee');
 
     // Add first property
-    const firstPropertyInput = screen.getByPlaceholderText(/e.g., email, age, address/i);
+    const firstPropertyInput = screen.getByPlaceholderText(/e\.g\., email, age, address/i);
     await user.type(firstPropertyInput, 'email');
 
     // Add second property
-    const addButton = screen.getByRole('button', {name: /add attribute/i});
+    const addButton = screen.getByRole('button', {name: /Add Property/i});
     await user.click(addButton);
 
     // Set same name for second property
-    const propertyInputs = screen.getAllByPlaceholderText(/e.g., email, age, address/i);
+    const propertyInputs = screen.getAllByPlaceholderText(/e\.g\., email, age, address/i);
     await user.type(propertyInputs[1], 'email');
 
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Duplicate property names found: email/i)).toBeInTheDocument();
+      expect(screen.getByText(/Duplicate property names found/i)).toBeInTheDocument();
     });
 
     expect(mockCreateUserType).not.toHaveBeenCalled();
@@ -213,7 +213,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const requiredCheckbox = screen.getByRole('checkbox', {name: /required/i});
+    const requiredCheckbox = screen.getByRole('checkbox', {name: /Required/i});
     expect(requiredCheckbox).not.toBeChecked();
 
     await user.click(requiredCheckbox);
@@ -227,7 +227,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const uniqueCheckbox = screen.getByRole('checkbox', {name: /unique/i});
+    const uniqueCheckbox = screen.getByRole('checkbox', {name: /Unique/i});
     expect(uniqueCheckbox).not.toBeChecked();
 
     await user.click(uniqueCheckbox);
@@ -239,7 +239,7 @@ describe('CreateUserTypePage', () => {
     render(<CreateUserTypePage />);
 
     // Initially unique checkbox should be visible for string type
-    expect(screen.getByRole('checkbox', {name: /unique/i})).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: /Unique/i})).toBeInTheDocument();
 
     // Change to boolean type
     const typeSelect = screen.getByRole('combobox');
@@ -249,7 +249,7 @@ describe('CreateUserTypePage', () => {
     await user.click(booleanOption);
 
     await waitFor(() => {
-      expect(screen.queryByRole('checkbox', {name: /unique/i})).not.toBeInTheDocument();
+      expect(screen.queryByRole('checkbox', {name: /Unique/i})).not.toBeInTheDocument();
     });
   });
 
@@ -257,7 +257,7 @@ describe('CreateUserTypePage', () => {
     const user = userEvent.setup();
     render(<CreateUserTypePage />);
 
-    const regexInput = screen.getByPlaceholderText(/e.g., \^/i);
+    const regexInput = screen.getByPlaceholderText('e.g., ^[a-zA-Z0-9]+$');
     await user.click(regexInput);
     await user.paste('^[a-z]+$');
 
@@ -277,7 +277,7 @@ describe('CreateUserTypePage', () => {
     const enumInput = screen.getByPlaceholderText(/Add value and press Enter/i);
     await user.type(enumInput, 'admin');
 
-    const addEnumButton = screen.getByRole('button', {name: /^add$/i});
+    const addEnumButton = screen.getByRole('button', {name: /^Add$/i});
     await user.click(addEnumButton);
 
     await waitFor(() => {
@@ -343,7 +343,7 @@ describe('CreateUserTypePage', () => {
     render(<CreateUserTypePage />);
 
     // Fill in user type name
-    const nameInput = screen.getByLabelText(/User Type Name/i);
+    const nameInput = screen.getByLabelText(/Type Name/i);
     await user.type(nameInput, 'Employee');
 
     // Fill in property name
@@ -351,11 +351,11 @@ describe('CreateUserTypePage', () => {
     await user.type(propertyNameInput, 'email');
 
     // Mark as required
-    const requiredCheckbox = screen.getByRole('checkbox', {name: /required/i});
+    const requiredCheckbox = screen.getByRole('checkbox', {name: /Required/i});
     await user.click(requiredCheckbox);
 
     // Submit form
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -403,9 +403,9 @@ describe('CreateUserTypePage', () => {
 
     render(<CreateUserTypePage />);
 
-    expect(screen.getByText('Creating...')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /creating.../i})).toBeDisabled();
-    expect(screen.getByRole('button', {name: /cancel/i})).toBeDisabled();
+    expect(screen.getByText('Saving...')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Saving/i})).toBeDisabled();
+    expect(screen.getByRole('button', {name: /Cancel/i})).toBeDisabled();
   });
 
   it('closes snackbar when close button is clicked', async () => {
@@ -413,7 +413,7 @@ describe('CreateUserTypePage', () => {
     render(<CreateUserTypePage />);
 
     // Trigger validation error
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -436,7 +436,7 @@ describe('CreateUserTypePage', () => {
     render(<CreateUserTypePage />);
 
     // Set user type name
-    const nameInput = screen.getByLabelText(/User Type Name/i);
+    const nameInput = screen.getByLabelText(/Type Name/i);
     await user.type(nameInput, 'Complex Type');
 
     // Change type to enum
@@ -449,10 +449,10 @@ describe('CreateUserTypePage', () => {
     const firstPropertyInput = screen.getByPlaceholderText(/e.g., email, age, address/i);
     await user.type(firstPropertyInput, 'status');
 
-    const requiredCheckbox = screen.getByRole('checkbox', {name: /required/i});
+    const requiredCheckbox = screen.getByRole('checkbox', {name: /Required/i});
     await user.click(requiredCheckbox);
 
-    const uniqueCheckbox = screen.getByRole('checkbox', {name: /unique/i});
+    const uniqueCheckbox = screen.getByRole('checkbox', {name: /Unique/i});
     await user.click(uniqueCheckbox);
 
     const enumInput = screen.getByPlaceholderText(/Add value and press Enter/i);
@@ -460,7 +460,7 @@ describe('CreateUserTypePage', () => {
     await user.type(enumInput, 'INACTIVE{Enter}');
 
     // Submit
-    const submitButton = screen.getByRole('button', {name: /create user type/i});
+    const submitButton = screen.getByRole('button', {name: /Create User Type/i});
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -508,7 +508,7 @@ describe('CreateUserTypePage', () => {
     });
 
     // Regex and enum inputs should not be visible for number type
-    expect(screen.queryByPlaceholderText(/Add value and press Enter/i)).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/e.g., \^/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/userTypes:enumPlaceholder/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/userTypes:regexPlaceholder/i)).not.toBeInTheDocument();
   });
 });

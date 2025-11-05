@@ -17,16 +17,19 @@
  */
 
 import {Box, Typography, Paper} from '@wso2/oxygen-ui';
+import {useTranslation} from 'react-i18next';
 
 export default function IntegrationsPage() {
+  const {t} = useTranslation();
+
   return (
     <Box>
       <Box mb={4}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Integrations
+          {t('integrations:title')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage your integrations and connections
+          {t('integrations:subtitle')}
         </Typography>
       </Box>
 
@@ -42,10 +45,10 @@ export default function IntegrationsPage() {
       >
         <Box>
           <Typography variant="h3" component="h2" gutterBottom color="text.secondary" fontWeight={500}>
-            Coming Soon
+            {t('integrations:comingSoon')}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Integrations management functionality will be available soon.
+            {t('integrations:comingSoonDescription')}
           </Typography>
         </Box>
       </Paper>

@@ -51,7 +51,7 @@ func TestOTPAuthnServiceTestSuite(t *testing.T) {
 func (suite *OTPAuthnServiceTestSuite) SetupTest() {
 	suite.mockOTPService = notificationmock.NewOTPServiceInterfaceMock(suite.T())
 	suite.mockUserService = usermock.NewUserServiceInterfaceMock(suite.T())
-	suite.service = NewOTPAuthnService(suite.mockOTPService, suite.mockUserService)
+	suite.service = newOTPAuthnService(suite.mockOTPService, suite.mockUserService)
 }
 
 func (suite *OTPAuthnServiceTestSuite) TestSendOTPSuccess() {
@@ -143,7 +143,7 @@ func (suite *OTPAuthnServiceTestSuite) TestSendOTPWithServiceError() {
 	for _, tc := range tests {
 		suite.Run(tc.name, func() {
 			freshOTP := notificationmock.NewOTPServiceInterfaceMock(suite.T())
-			suite.service = NewOTPAuthnService(freshOTP, suite.mockUserService)
+			suite.service = newOTPAuthnService(freshOTP, suite.mockUserService)
 			freshOTP.On("SendOTP", mock.Anything).Return(nil, tc.mockReturnErr)
 
 			token, err := suite.service.SendOTP(testSenderID, notifcommon.ChannelTypeSMS, "+1234567890")
@@ -265,7 +265,7 @@ func (suite *OTPAuthnServiceTestSuite) TestVerifyOTPWithOTPServiceError() {
 	for _, tc := range tests {
 		suite.Run(tc.name, func() {
 			freshOTP := notificationmock.NewOTPServiceInterfaceMock(suite.T())
-			suite.service = NewOTPAuthnService(freshOTP, suite.mockUserService)
+			suite.service = newOTPAuthnService(freshOTP, suite.mockUserService)
 			freshOTP.On("VerifyOTP", mock.Anything).Return(nil, tc.mockReturnErr)
 
 			result, err := suite.service.VerifyOTP(testSessionToken, "123456")
@@ -340,7 +340,7 @@ func (suite *OTPAuthnServiceTestSuite) TestVerifyOTPWithUserServiceError() {
 		suite.Run(tc.name, func() {
 			freshOTP := notificationmock.NewOTPServiceInterfaceMock(suite.T())
 			freshUser := usermock.NewUserServiceInterfaceMock(suite.T())
-			suite.service = NewOTPAuthnService(freshOTP, freshUser)
+			suite.service = newOTPAuthnService(freshOTP, freshUser)
 
 			freshOTP.On("VerifyOTP", mock.Anything).Return(verifyResult, nil)
 			freshUser.On("IdentifyUser", mock.Anything).Return(tc.identifyRet, tc.identifyErr)

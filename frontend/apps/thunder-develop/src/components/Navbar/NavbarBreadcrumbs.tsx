@@ -19,6 +19,7 @@
 import {styled, Typography, Breadcrumbs, breadcrumbsClasses, Box} from '@wso2/oxygen-ui';
 import {ChevronRightIcon} from 'lucide-react';
 import type {JSX} from 'react';
+import {useTranslation} from 'react-i18next';
 import useNavigation from '@/layouts/contexts/useNavigation';
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({theme}) => ({
@@ -33,7 +34,20 @@ const StyledBreadcrumbs = styled(Breadcrumbs)(({theme}) => ({
 }));
 
 export default function NavbarBreadcrumbs(): JSX.Element {
+  const {t} = useTranslation();
   const {currentPage} = useNavigation();
+
+  // Map page IDs to translation keys
+  const pageTranslationKeyMap: Record<string, string> = {
+    users: 'navigation:pages.users',
+    'user-types': 'navigation:pages.userTypes',
+    integrations: 'navigation:pages.integrations',
+    applications: 'navigation:pages.applications',
+    dashboard: 'navigation:pages.dashboard',
+  };
+
+  // Get the translation key for the current page, fallback to the page ID if not found
+  const currentPageTranslationKey = pageTranslationKeyMap[currentPage] || currentPage;
 
   return (
     <StyledBreadcrumbs
@@ -44,9 +58,9 @@ export default function NavbarBreadcrumbs(): JSX.Element {
         </Box>
       }
     >
-      <Typography variant="body1">Develop</Typography>
+      <Typography variant="body1">{t('navigation:breadcrumb.develop')}</Typography>
       <Typography variant="body1" sx={{color: 'text.primary', fontWeight: 600}}>
-        {currentPage}
+        {t(currentPageTranslationKey)}
       </Typography>
     </StyledBreadcrumbs>
   );

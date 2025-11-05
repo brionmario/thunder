@@ -19,20 +19,22 @@
 import {useNavigate} from 'react-router';
 import {Box, Stack, Typography, Button} from '@wso2/oxygen-ui';
 import {Plus} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
 import UserTypesList from '../components/UserTypesList';
 
 export default function UserTypesListPage() {
   const navigate = useNavigate();
+  const {t} = useTranslation();
 
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            User Type Management
+            {t('userTypes:title')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Define and manage user types for your organization
+            {t('userTypes:createDescription')}
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
@@ -50,7 +52,7 @@ export default function UserTypesListPage() {
               });
             }}
           >
-            Create User Type
+            {t('userTypes:createUserType')}
           </Button>
         </Stack>
       </Stack>

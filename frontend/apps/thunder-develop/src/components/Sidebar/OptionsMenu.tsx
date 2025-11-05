@@ -31,6 +31,7 @@ import {
 import {SignOutButton, useAsgardeo} from '@asgardeo/react';
 import {useState, type JSX, type MouseEvent} from 'react';
 import {EllipsisVertical, LogOut} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
 import MenuButton from './MenuButton';
 
 const MenuItem = styled(MuiMenuItem)({
@@ -39,6 +40,7 @@ const MenuItem = styled(MuiMenuItem)({
 
 export default function OptionsMenu(): JSX.Element {
   const {signIn} = useAsgardeo();
+  const {t} = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -75,11 +77,11 @@ export default function OptionsMenu(): JSX.Element {
           },
         }}
       >
-        <MenuItem onClick={handleClose}>Profile</MenuItem>
-        <MenuItem onClick={handleClose}>My account</MenuItem>
+        <MenuItem onClick={handleClose}>{t('common:userMenu.profile')}</MenuItem>
+        <MenuItem onClick={handleClose}>{t('common:userMenu.myAccount')}</MenuItem>
         <Divider />
-        <MenuItem onClick={handleClose}>Add another account</MenuItem>
-        <MenuItem onClick={handleClose}>Settings</MenuItem>
+        <MenuItem onClick={handleClose}>{t('common:userMenu.addAnotherAccount')}</MenuItem>
+        <MenuItem onClick={handleClose}>{t('common:userMenu.settings')}</MenuItem>
         <Divider />
         <SignOutButton>
           {({signOut, isLoading}) => (
@@ -98,7 +100,7 @@ export default function OptionsMenu(): JSX.Element {
                 },
               }}
             >
-              <ListItemText>Sign Out</ListItemText>
+              <ListItemText>{t('common:userMenu.signOut')}</ListItemText>
               <ListItemIcon>
                 <LogOut size={16} />
               </ListItemIcon>

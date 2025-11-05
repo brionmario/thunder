@@ -595,15 +595,17 @@ func buildPaginationLinks(base string, limit, offset, totalCount int) []Link {
 
 // validateAndProcessHandlePath validates and processes the handle path.
 func (gs *groupService) validateAndProcessHandlePath(handlePath string) *serviceerror.ServiceError {
-	if strings.TrimSpace(handlePath) == "" {
+	trimmedPath := strings.TrimSpace(handlePath)
+	if trimmedPath == "" {
 		return &ErrorInvalidRequestFormat
 	}
 
-	handles := strings.Split(strings.Trim(handlePath, "/"), "/")
-	if len(handles) == 0 {
+	trimmedPath = strings.Trim(trimmedPath, "/")
+	if trimmedPath == "" {
 		return &ErrorInvalidRequestFormat
 	}
 
+	handles := strings.Split(trimmedPath, "/")
 	for _, handle := range handles {
 		if strings.TrimSpace(handle) == "" {
 			return &ErrorInvalidRequestFormat

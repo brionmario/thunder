@@ -19,14 +19,17 @@
 import {FormControl, InputAdornment, OutlinedInput} from '@wso2/oxygen-ui';
 import {SearchIcon} from 'lucide-react';
 import type {JSX} from 'react';
+import {useTranslation} from 'react-i18next';
 
 export default function Search(): JSX.Element {
+  const {t} = useTranslation();
+
   return (
     <FormControl sx={{width: {xs: '100%', md: '25ch'}}} variant="outlined">
       <OutlinedInput
         size="small"
         id="search"
-        placeholder="Search…"
+        placeholder={t('common:form.searchPlaceholder')}
         sx={{flexGrow: 1}}
         startAdornment={
           <InputAdornment position="start" sx={{color: 'text.primary'}}>
@@ -34,7 +37,7 @@ export default function Search(): JSX.Element {
           </InputAdornment>
         }
         inputProps={{
-          'aria-label': 'search',
+          'aria-label': t('common:actions.search'),
         }}
       />
     </FormControl>

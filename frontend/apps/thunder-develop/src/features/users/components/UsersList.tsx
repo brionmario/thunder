@@ -39,6 +39,8 @@ import {
 } from '@wso2/oxygen-ui';
 import {DataGrid, type GridColDef, type GridRenderCellParams} from '@mui/x-data-grid';
 import {EllipsisVertical, Trash2, Eye} from 'lucide-react';
+import {useTranslation} from 'react-i18next';
+import useDataGridLocaleText from '../../../hooks/useDataGridLocaleText';
 import useGetUsers from '../api/useGetUsers';
 import useGetUserSchema from '../api/useGetUserSchema';
 import useDeleteUser from '../api/useDeleteUser';
@@ -50,6 +52,8 @@ interface UsersListProps {
 
 export default function UsersList(props: UsersListProps) {
   const {selectedSchema} = props;
+  const {t} = useTranslation();
+  const dataGridLocaleText = useDataGridLocaleText();
 
   const {data: userData, loading: isUsersRequestLoading, error: usersRequestError, refetch} = useGetUsers();
   const {deleteUser, loading: isDeleting, error: deleteUserError} = useDeleteUser();
@@ -250,7 +254,11 @@ export default function UsersList(props: UsersListProps) {
 
             const isActive = typeof value === 'boolean' ? value : value === 'active';
             return (
-              <Chip label={isActive ? 'Active' : 'Inactive'} size="small" color={isActive ? 'success' : 'default'} />
+              <Chip
+                label={isActive ? t('common:status.active') : t('common:status.inactive')}
+                size="small"
+                color={isActive ? 'success' : 'default'}
+              />
             );
           },
         });
@@ -272,7 +280,7 @@ export default function UsersList(props: UsersListProps) {
           columnDef.renderCell = (params: GridRenderCellParams<UserWithDetails>) => {
             const value = params.row.attributes?.[fieldName] as boolean | undefined;
             if (value === undefined || value === null) return '-';
-            return value ? 'Yes' : 'No';
+            return value ? t('common:actions.yes') : t('common:actions.no');
           };
           break;
 
@@ -316,7 +324,7 @@ export default function UsersList(props: UsersListProps) {
     // Add actions column at the end (pinned to the right)
     schemaColumns.push({
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('users:actions'),
       width: 80,
       sortable: false,
       filterable: false,
@@ -335,7 +343,7 @@ export default function UsersList(props: UsersListProps) {
     });
 
     return schemaColumns;
-  }, [defaultUserSchema, handleMenuOpen]);
+  }, [defaultUserSchema, handleMenuOpen, t]);
 
   // Calculate initial column visibility: show first 4 columns, hide the rest
   const initialColumnVisibility = useMemo(() => {
@@ -389,6 +397,7 @@ export default function UsersList(props: UsersListProps) {
           }}
           pageSizeOptions={[5, 10, 25, 50]}
           disableRowSelectionOnClick
+          localeText={dataGridLocaleText}
           sx={{
             '& .MuiDataGrid-row': {
               cursor: 'pointer',
@@ -409,23 +418,21 @@ export default function UsersList(props: UsersListProps) {
           <ListItemIcon>
             <Eye size={16} />
           </ListItemIcon>
-          <ListItemText>View</ListItemText>
+          <ListItemText>{t('common:actions.view')}</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleDeleteClick}>
           <ListItemIcon>
             <Trash2 size={16} color="red" />
           </ListItemIcon>
-          <ListItemText sx={{color: 'error.main'}}>Delete</ListItemText>
+          <ListItemText sx={{color: 'error.main'}}>{t('common:actions.delete')}</ListItemText>
         </MenuItem>
       </Menu>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Delete User</DialogTitle>
+        <DialogTitle>{t('users:deleteUser')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this user? This action cannot be undone.
-          </DialogContentText>
+          <DialogContentText>{t('users:confirmDeleteUser')}</DialogContentText>
           {deleteUserError && (
             <Alert severity="error" sx={{mt: 2}}>
               <Typography variant="body2" sx={{fontWeight: 'bold'}}>
@@ -437,7 +444,7 @@ export default function UsersList(props: UsersListProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel} disabled={isDeleting}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             onClick={() => {
@@ -449,7 +456,7 @@ export default function UsersList(props: UsersListProps) {
             variant="contained"
             disabled={isDeleting}
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? t('common:status.loading') : t('common:actions.delete')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -461,7 +468,7 @@ export default function UsersList(props: UsersListProps) {
         anchorOrigin={{vertical: 'top', horizontal: 'right'}}
       >
         <Alert onClose={handleCloseSnackbar} severity="error" sx={{width: '100%'}}>
-          {error?.message ?? 'An error occurred while loading data'}
+          {error?.message ?? t('common:messages.saveError')}
         </Alert>
       </Snackbar>
     </>

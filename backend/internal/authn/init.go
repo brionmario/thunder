@@ -1,0 +1,158 @@
+/*
+ * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package authn
+
+import (
+	"net/http"
+
+	"github.com/asgardeo/thunder/internal/authn/assert"
+	"github.com/asgardeo/thunder/internal/authn/credentials"
+	"github.com/asgardeo/thunder/internal/authn/github"
+	"github.com/asgardeo/thunder/internal/authn/google"
+	"github.com/asgardeo/thunder/internal/authn/oauth"
+	"github.com/asgardeo/thunder/internal/authn/oidc"
+	"github.com/asgardeo/thunder/internal/authn/otp"
+	"github.com/asgardeo/thunder/internal/idp"
+	"github.com/asgardeo/thunder/internal/notification"
+	"github.com/asgardeo/thunder/internal/system/jwt"
+	"github.com/asgardeo/thunder/internal/system/middleware"
+	"github.com/asgardeo/thunder/internal/user"
+)
+
+// AuthServiceRegistry holds references to all authentication services.
+type AuthServiceRegistry struct {
+	CredentialsAuthnService credentials.CredentialsAuthnServiceInterface
+	OTPAuthnService         otp.OTPAuthnServiceInterface
+	OAuthAuthnService       oauth.OAuthAuthnServiceInterface
+	OIDCAuthnService        oidc.OIDCAuthnServiceInterface
+	GithubOAuthAuthnService github.GithubOAuthAuthnServiceInterface
+	GoogleOIDCAuthnService  google.GoogleOIDCAuthnServiceInterface
+	AuthAssertGenerator     assert.AuthAssertGeneratorInterface
+}
+
+// Initialize initializes the authentication service and registers its routes.
+func Initialize(
+	mux *http.ServeMux,
+	idpSvc idp.IDPServiceInterface,
+	jwtSvc jwt.JWTServiceInterface,
+	userSvc user.UserServiceInterface,
+	otpSvc notification.OTPServiceInterface,
+) (AuthenticationServiceInterface, *AuthServiceRegistry) {
+	authServiceRegistry := createAuthServiceRegistry(idpSvc, jwtSvc, userSvc, otpSvc)
+	authnService := newAuthenticationService(
+		idpSvc,
+		jwtSvc,
+		authServiceRegistry.AuthAssertGenerator,
+		authServiceRegistry.CredentialsAuthnService,
+		authServiceRegistry.OTPAuthnService,
+		authServiceRegistry.OAuthAuthnService,
+		authServiceRegistry.OIDCAuthnService,
+		authServiceRegistry.GoogleOIDCAuthnService,
+		authServiceRegistry.GithubOAuthAuthnService,
+	)
+
+	authnHandler := newAuthenticationHandler(authnService)
+	registerRoutes(mux, authnHandler)
+
+	return authnService, authServiceRegistry
+}
+
+// createAuthServiceRegistry creates and returns an AuthServiceRegistry instance.
+func createAuthServiceRegistry(
+	idpSvc idp.IDPServiceInterface,
+	jwtSvc jwt.JWTServiceInterface,
+	userSvc user.UserServiceInterface,
+	otpSvc notification.OTPServiceInterface,
+) *AuthServiceRegistry {
+	return &AuthServiceRegistry{
+		CredentialsAuthnService: credentials.Initialize(userSvc),
+		OTPAuthnService:         otp.Initialize(otpSvc, userSvc),
+		OAuthAuthnService:       oauth.Initialize(idpSvc, userSvc),
+		OIDCAuthnService:        oidc.Initialize(idpSvc, userSvc, jwtSvc),
+		GithubOAuthAuthnService: github.Initialize(idpSvc, userSvc),
+		GoogleOIDCAuthnService:  google.Initialize(idpSvc, userSvc, jwtSvc),
+		AuthAssertGenerator:     assert.Initialize(),
+	}
+}
+
+// registerRoutes registers the routes for the authentication.
+func registerRoutes(mux *http.ServeMux, authnHandler *authenticationHandler) {
+	opts := middleware.CORSOptions{
+		AllowedMethods:   "POST",
+		AllowedHeaders:   "Content-Type, Authorization",
+		AllowCredentials: true,
+	}
+
+	// Credentials authentication routes
+	mux.HandleFunc(middleware.WithCORS("POST /auth/credentials/authenticate",
+		authnHandler.HandleCredentialsAuthRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/credentials/authenticate",
+		optionsNoContentHandler, opts))
+
+	// SMS OTP routes
+	mux.HandleFunc(middleware.WithCORS("POST /auth/otp/sms/send",
+		authnHandler.HandleSendSMSOTPRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("POST /auth/otp/sms/verify",
+		authnHandler.HandleVerifySMSOTPRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/otp/sms/send",
+		optionsNoContentHandler, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/otp/sms/verify",
+		optionsNoContentHandler, opts))
+
+	// Google OAuth routes
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/google/start",
+		authnHandler.HandleGoogleAuthStartRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/google/finish",
+		authnHandler.HandleGoogleAuthFinishRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/google/start",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/google/finish",
+		optionsNoContentHandler, opts))
+
+	// GitHub OAuth routes
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/github/start",
+		authnHandler.HandleGithubAuthStartRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/github/finish",
+		authnHandler.HandleGithubAuthFinishRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/github/start",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/github/finish",
+		optionsNoContentHandler, opts))
+
+	// Standard OAuth routes
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/standard/start",
+		authnHandler.HandleStandardOAuthStartRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("POST /auth/oauth/standard/finish",
+		authnHandler.HandleStandardOAuthFinishRequest, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/standard/start",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}, opts))
+	mux.HandleFunc(middleware.WithCORS("OPTIONS /auth/oauth/standard/finish",
+		optionsNoContentHandler, opts))
+}
+
+// optionsNoContentHandler handles OPTIONS requests by responding with 204 No Content.
+func optionsNoContentHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -19,8 +19,11 @@
 package crypto
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Mock config for testing.
@@ -190,6 +193,90 @@ func TestDifferentKeysEncryption(t *testing.T) {
 	if err == nil {
 		t.Error("Expected decryption with different key to fail, but it succeeded")
 	}
+}
+
+func TestEncryptWithInvalidKey(t *testing.T) {
+	service := &CryptoService{
+		Key: []byte("short"),
+		Kid: "kid",
+	}
+
+	_, err := service.Encrypt([]byte("data"))
+	require.Error(t, err)
+}
+
+func TestDecryptInvalidJSON(t *testing.T) {
+	key, _ := generateRandomKey(defaultKeySize)
+	service, _ := NewCryptoService(key)
+
+	_, err := service.Decrypt("not-json")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid data format")
+}
+
+func TestDecryptUnsupportedAlgorithm(t *testing.T) {
+	key, _ := generateRandomKey(defaultKeySize)
+	service, _ := NewCryptoService(key)
+
+	payload := EncryptedData{
+		Algorithm:  "RSA",
+		Ciphertext: base64.StdEncoding.EncodeToString([]byte("cipher")),
+		KeyID:      service.Kid,
+	}
+	raw, _ := json.Marshal(payload)
+
+	_, err := service.Decrypt(string(raw))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unsupported algorithm")
+}
+
+func TestDecryptInvalidBase64(t *testing.T) {
+	key, _ := generateRandomKey(defaultKeySize)
+	service, _ := NewCryptoService(key)
+
+	payload := EncryptedData{
+		Algorithm:  aesgcmAlgorithm,
+		Ciphertext: "###invalid###",
+		KeyID:      service.Kid,
+	}
+	raw, _ := json.Marshal(payload)
+
+	_, err := service.Decrypt(string(raw))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid payload encoding")
+}
+
+func TestDecryptCiphertextTooShort(t *testing.T) {
+	key, _ := generateRandomKey(defaultKeySize)
+	service, _ := NewCryptoService(key)
+
+	payload := EncryptedData{
+		Algorithm:  aesgcmAlgorithm,
+		Ciphertext: base64.StdEncoding.EncodeToString([]byte("short")),
+		KeyID:      service.Kid,
+	}
+	raw, _ := json.Marshal(payload)
+
+	_, err := service.Decrypt(string(raw))
+	require.Error(t, err)
+	require.EqualError(t, err, "ciphertext too short")
+}
+
+func TestDecryptWithInvalidKeyLength(t *testing.T) {
+	service := &CryptoService{
+		Key: []byte("short"),
+		Kid: "kid",
+	}
+
+	payload := EncryptedData{
+		Algorithm:  aesgcmAlgorithm,
+		Ciphertext: base64.StdEncoding.EncodeToString([]byte("ciphertext-with-nonce")),
+		KeyID:      "kid",
+	}
+	raw, _ := json.Marshal(payload)
+
+	_, err := service.Decrypt(string(raw))
+	require.Error(t, err)
 }
 
 func TestNondefaultKeySize(t *testing.T) {

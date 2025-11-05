@@ -76,18 +76,28 @@ type authenticationService struct {
 	githubService          github.GithubOAuthAuthnServiceInterface
 }
 
-// NewAuthenticationService creates a new instance of AuthenticationService.
-func NewAuthenticationService() AuthenticationServiceInterface {
+// newAuthenticationService creates a new instance of AuthenticationService.
+func newAuthenticationService(
+	idpSvc idp.IDPServiceInterface,
+	jwtSvc jwt.JWTServiceInterface,
+	authAssertGen assert.AuthAssertGeneratorInterface,
+	credentialsAuthnSvc credentials.CredentialsAuthnServiceInterface,
+	otpAuthnSvc otp.OTPAuthnServiceInterface,
+	oauthAuthnSvc oauth.OAuthAuthnServiceInterface,
+	oidcAuthnSvc oidc.OIDCAuthnServiceInterface,
+	googleAuthnSvc google.GoogleOIDCAuthnServiceInterface,
+	githubAuthnSvc github.GithubOAuthAuthnServiceInterface,
+) AuthenticationServiceInterface {
 	return &authenticationService{
-		idpService:             idp.NewIDPService(),
-		jwtService:             jwt.GetJWTService(),
-		authAssertionGenerator: assert.NewAuthAssertGenerator(),
-		credentialsService:     credentials.NewCredentialsAuthnService(nil),
-		otpService:             otp.NewOTPAuthnService(nil, nil),
-		oauthService:           oauth.NewOAuthAuthnService(nil, nil, oauth.OAuthEndpoints{}),
-		oidcService:            oidc.NewOIDCAuthnService(nil, nil),
-		googleService:          google.NewGoogleOIDCAuthnService(nil),
-		githubService:          github.NewGithubOAuthAuthnService(nil, nil),
+		idpService:             idpSvc,
+		jwtService:             jwtSvc,
+		authAssertionGenerator: authAssertGen,
+		credentialsService:     credentialsAuthnSvc,
+		otpService:             otpAuthnSvc,
+		oauthService:           oauthAuthnSvc,
+		oidcService:            oidcAuthnSvc,
+		googleService:          googleAuthnSvc,
+		githubService:          githubAuthnSvc,
 	}
 }
 

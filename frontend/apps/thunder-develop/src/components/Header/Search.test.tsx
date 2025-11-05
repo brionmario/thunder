@@ -26,14 +26,14 @@ describe('Search', () => {
   it('renders search input with placeholder', () => {
     render(<Search />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
+    const searchInput = screen.getByPlaceholderText('Search...');
     expect(searchInput).toBeInTheDocument();
   });
 
   it('has correct aria-label', () => {
     render(<Search />);
 
-    const searchInput = screen.getByLabelText(/search/i);
+    const searchInput = screen.getByLabelText('Search');
     expect(searchInput).toBeInTheDocument();
   });
 
@@ -48,7 +48,7 @@ describe('Search', () => {
     const user = userEvent.setup();
     render(<Search />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
+    const searchInput = screen.getByPlaceholderText('Search...');
     await user.type(searchInput, 'test query');
 
     expect(searchInput).toHaveValue('test query');
@@ -57,14 +57,14 @@ describe('Search', () => {
   it('has correct input id', () => {
     render(<Search />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
+    const searchInput = screen.getByPlaceholderText('Search...');
     expect(searchInput).toHaveAttribute('id', 'search');
   });
 
   it('is not disabled by default', () => {
     render(<Search />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
+    const searchInput = screen.getByPlaceholderText('Search...');
     expect(searchInput).not.toBeDisabled();
   });
 });

@@ -91,10 +91,7 @@ export default function CreateUserPage() {
       };
 
       // Call the API to create the user
-      const result = await createUser(requestBody);
-
-      // eslint-disable-next-line no-console
-      console.log('User created successfully:', result);
+      await createUser(requestBody);
 
       // Navigate to users list on success
       await navigate('/users');

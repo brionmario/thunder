@@ -27,12 +27,15 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/asgardeo/thunder/internal/authn/common"
 	"github.com/asgardeo/thunder/internal/authn/oauth"
 	"github.com/asgardeo/thunder/internal/authn/oidc"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	"github.com/asgardeo/thunder/internal/user"
 	"github.com/asgardeo/thunder/tests/mocks/authn/oidcmock"
+	"github.com/asgardeo/thunder/tests/mocks/idp/idpmock"
 	"github.com/asgardeo/thunder/tests/mocks/jwtmock"
+	"github.com/asgardeo/thunder/tests/mocks/usermock"
 )
 
 const (
@@ -784,4 +787,37 @@ func generateTestJWT(claims map[string]interface{}) string {
 	signature := base64.RawURLEncoding.EncodeToString([]byte("fake-signature"))
 
 	return encodedHeader + "." + encodedClaims + "." + signature
+}
+
+func (suite *GoogleOIDCAuthnServiceTestSuite) TestCustomServiceError() {
+	// Ensure customServiceError sets description when provided and preserves original fields
+	base := serviceerror.ServiceError{Type: "T", Code: "C", Error: "E", ErrorDescription: "orig"}
+
+	res := customServiceError(base, "")
+	// when empty description provided, original description must be preserved
+	suite.Equal("orig", res.ErrorDescription)
+	// when custom description provided, it should be set
+	res2 := customServiceError(base, "my-desc")
+	suite.Equal("my-desc", res2.ErrorDescription)
+}
+
+func (suite *GoogleOIDCAuthnServiceTestSuite) TestNewGoogleOIDCAuthnService_WithInjectedDeps() {
+	// Create lightweight mocks for idp and user to pass into constructor.
+	idpMock := idpmock.NewIDPServiceInterfaceMock(suite.T())
+	userMock := usermock.NewUserServiceInterfaceMock(suite.T())
+
+	// Case 1: provide jwtSvc as nil to exercise the jwt.GetJWTService() fallback
+	svc := NewGoogleOIDCAuthnService(idpMock, userMock, nil)
+	suite.NotNil(svc)
+
+	// Case 2: provide a jwt mock explicitly and ensure constructor returns a usable object
+	jwtMock := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	svc2 := NewGoogleOIDCAuthnService(idpMock, userMock, jwtMock)
+	suite.NotNil(svc2)
+
+	// Type-assert to concrete type and inspect metadata
+	if concrete, ok := svc2.(*googleOIDCAuthnService); ok {
+		meta := concrete.getMetadata()
+		suite.Equal(common.AuthenticatorGoogle, meta.Name)
+	}
 }

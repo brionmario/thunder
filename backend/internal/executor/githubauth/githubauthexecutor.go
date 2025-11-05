@@ -35,6 +35,7 @@ import (
 	httpservice "github.com/asgardeo/thunder/internal/system/http"
 	"github.com/asgardeo/thunder/internal/system/log"
 	systemutils "github.com/asgardeo/thunder/internal/system/utils"
+	"github.com/asgardeo/thunder/internal/user"
 )
 
 const loggerComponentName = "GithubOAuthExecutor"
@@ -67,16 +68,12 @@ func NewGithubOAuthExecutor(id, name string, properties map[string]string,
 		UserInfoEndpoint:      oAuthProps.UserInfoEndpoint,
 	}
 
+	// TODO: Should be injected when moving executors to di pattern.
 	httpClient := httpservice.NewHTTPClientWithTimeout(flowconst.DefaultHTTPTimeout)
-	authNService := authnoauth.NewOAuthAuthnService(
-		httpClient,
-		idp.NewIDPService(),
-		endpoints,
-	)
-	githubAuthService := authngithub.NewGithubOAuthAuthnService(
-		authNService,
-		httpClient,
-	)
+	idpSvc := idp.NewIDPService()
+	userSvc := user.GetUserService()
+	authNService := authnoauth.NewOAuthAuthnService(httpClient, idpSvc, userSvc, endpoints)
+	githubAuthService := authngithub.NewGithubOAuthAuthnService(idpSvc, userSvc)
 
 	base := oauth.NewOAuthExecutorWithAuthService(id, name, []flowmodel.InputData{},
 		properties, oAuthProps, authNService)

@@ -21,9 +21,9 @@ import {Stack} from '@wso2/oxygen-ui';
 import SignInBox from './SignInBox';
 import SignInSlogan from './SignInSlogan';
 
-export type SignInSideProps = Record<string, unknown>;
+export type SignInProps = Record<string, unknown>;
 
-export default function SignInSide(): JSX.Element {
+export default function SignIn(): JSX.Element {
   return (
     <Stack
       direction="column"

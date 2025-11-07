@@ -20,6 +20,7 @@ import {BrowserRouter, Route, Routes} from 'react-router';
 import type {JSX} from 'react';
 import DefaultLayout from './layouts/DefaultLayout';
 import SignInPage from './pages/SignInPage';
+import SignUpPage from './pages/SignUpPage';
 
 export default function App(): JSX.Element {
   return (
@@ -27,6 +28,7 @@ export default function App(): JSX.Element {
       <Routes>
         <Route path="/" element={<DefaultLayout />}>
           <Route path="/" element={<SignInPage />} />
+          <Route path="/create" element={<SignUpPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

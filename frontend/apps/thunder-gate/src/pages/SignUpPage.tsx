@@ -17,8 +17,8 @@
  */
 
 import type {JSX} from 'react';
-import SignIn from '../components/SignIn/SignIn';
+import SignUp from '../components/SignUp/SignUp';
 
-export default function SignInPage(): JSX.Element {
-  return <SignIn />;
+export default function SignUpPage(): JSX.Element {
+  return <SignUp />;
 }

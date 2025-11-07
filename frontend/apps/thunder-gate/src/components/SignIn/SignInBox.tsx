@@ -30,12 +30,13 @@ import {
   TextField,
   Typography,
   styled,
-  AlertTitle
+  AlertTitle,
 } from '@wso2/oxygen-ui';
 import {useState} from 'react';
 import {SignIn} from '@asgardeo/react';
 import {Smartphone} from 'lucide-react';
 import {Google, Facebook, GitHub} from '@thunder/ui';
+import {useNavigate, useSearchParams} from 'react-router';
 
 const Card = styled(MuiCard)(({theme}) => ({
   display: 'flex',
@@ -48,7 +49,8 @@ const Card = styled(MuiCard)(({theme}) => ({
   WebkitBackdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.1) !important',
   background: 'rgba(215, 215, 215, 0.04)',
-  boxShadow: '0 5px 10px 0 rgba(6, 6, 14, 0.1), 0 0 0 0 rgba(199, 211, 234, 0.01) inset, 0 0 0 0 rgba(199, 211, 234, 0.12) inset',
+  boxShadow:
+    '0 5px 10px 0 rgba(6, 6, 14, 0.1), 0 0 0 0 rgba(199, 211, 234, 0.01) inset, 0 0 0 0 rgba(199, 211, 234, 0.12) inset',
   [theme.breakpoints.up('sm')]: {
     width: '450px',
   },
@@ -58,6 +60,9 @@ const Card = styled(MuiCard)(({theme}) => ({
 }));
 
 export default function SignInBox(): JSX.Element {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState(false);
@@ -206,7 +211,7 @@ export default function SignInBox(): JSX.Element {
                             .filter((c) => c.type === 'BUTTON')
                             .filter((c) => c.config?.actionId !== 'basic_auth')
                             .map((button) => {
-                              const actionId = button.config?.actionId as string ?? '';
+                              const actionId = (button.config?.actionId as string) ?? '';
 
                               const getIcon = () => {
                                 if (actionId.includes('google')) return <Google />;
@@ -341,6 +346,32 @@ export default function SignInBox(): JSX.Element {
                 })()}
               </>
             )}
+
+            <Typography sx={{textAlign: 'center'}}>
+              Don&apos;t have an account?{' '}
+              <Button
+                variant="text"
+                onClick={() => {
+                  const currentParams = searchParams.toString();
+                  const createUrl = currentParams ? `/create?${currentParams}` : '/create';
+                  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                  navigate(createUrl);
+                }}
+                sx={{
+                  p: 0,
+                  minWidth: 'auto',
+                  textTransform: 'none',
+                  color: 'primary.main',
+                  textDecoration: 'underline',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    backgroundColor: 'transparent',
+                  },
+                }}
+              >
+                Sign up
+              </Button>
+            </Typography>
           </>
         )}
       </SignIn>

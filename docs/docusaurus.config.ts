@@ -58,123 +58,7 @@ const config: Config = {
     locales: ['en'],
   },
 
-  plugins: [
-    webpackPlugin,
-    [
-      'docusaurus-plugin-openapi-docs',
-      {
-        id: 'openapi-api',
-        docsPluginId: 'classic',
-        config: {
-          applications: {
-            specPath: '../api/application.yaml',
-            outputDir: 'docs/apis/application',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          authentication: {
-            specPath: '../api/authentication.yaml',
-            outputDir: 'docs/apis/authentication',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          branding: {
-            specPath: '../api/branding.yaml',
-            outputDir: 'docs/apis/branding',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          flowExecution: {
-            specPath: '../api/flow-execution.yaml',
-            outputDir: 'docs/apis/flow-execution',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          flowManagement: {
-            specPath: '../api/flow-management.yaml',
-            outputDir: 'docs/apis/flow-management',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          group: {
-            specPath: '../api/group.yaml',
-            outputDir: 'docs/apis/group',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          healthCheck: {
-            specPath: '../api/healthcheck.yaml',
-            outputDir: 'docs/apis/health-check',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          i18n: {
-            specPath: '../api/i18n.yaml',
-            outputDir: 'docs/apis/i18n',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          idp: {
-            specPath: '../api/idp.yaml',
-            outputDir: 'docs/apis/idp',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          notificationSender: {
-            specPath: '../api/notification-sender.yaml',
-            outputDir: 'docs/apis/notification-sender',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          ou: {
-            specPath: '../api/ou.yaml',
-            outputDir: 'docs/apis/ou',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          registration: {
-            specPath: '../api/registration.yaml',
-            outputDir: 'docs/apis/registration',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          resource: {
-            specPath: '../api/resource.yaml',
-            outputDir: 'docs/apis/resource',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          role: {
-            specPath: '../api/role.yaml',
-            outputDir: 'docs/apis/role',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-          user: {
-            specPath: '../api/user.yaml',
-            outputDir: 'docs/apis/user',
-            sidebarOptions: {
-              groupPathsBy: 'tag',
-            },
-          },
-        },
-      },
-    ],
-  ],
+  plugins: [webpackPlugin],
 
   presets: [
     [
@@ -183,8 +67,6 @@ const config: Config = {
         docs: {
           path: 'content',
           sidebarPath: './sidebars.ts',
-          // Derived from docusaurus-theme-openapi
-          docItemComponent: '@theme/ApiItem',
           // Edit URL for the "edit this page" feature.
           editUrl: thunderConfig.project.source.github.editUrls.content,
         },
@@ -207,8 +89,6 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
-
-  themes: ['docusaurus-theme-openapi-docs'],
 
   themeConfig: {
     announcementBar: {
@@ -239,8 +119,7 @@ const config: Config = {
           className: 'navbar__link--docs',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'apisSidebar',
+          to: '/docs/apis',
           position: 'left',
           label: 'APIs',
         },

@@ -35,6 +35,7 @@ import FlutterLogo from '@site/src/components/icons/FlutterLogo';
 import IOSLogo from '@site/src/components/icons/IOSLogo';
 import AndroidLogo from '@site/src/components/icons/AndroidLogo';
 import ReactRouterLogo from '@site/src/components/icons/ReactRouterLogo';
+import ApiReference from '../components/ApiReference';
 
 export default {
   ...MDXComponents,
@@ -60,6 +61,7 @@ export default {
   IOSLogo,
   AndroidLogo,
   ReactRouterLogo,
+  ApiReference,
   // TODO: Heading styling is a bit off when oxygen-ui Typography is used.
   // After sorting that out, we can switch to using Oxygen UI Typography for headings as well.
   // ex: h1: (props: TypographyProps<'h1'>) => <Typography variant="h1" {...props} />,

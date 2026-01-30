@@ -1,0 +1,463 @@
+openapi: 3.0.3
+
+info:
+  title: Notification Sender API
+  description: This API is used to handle notification senders.
+  version: "1.0"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://{host}:{port}
+    variables:
+      host:
+        default: "localhost"
+      port:
+        default: "8090"
+
+security:
+  - OAuth2: [system]
+
+paths:
+  /notification-senders/message:
+    get:
+      summary: List message notification senders
+      description: Retrieve a list of message notification senders.
+      tags:
+        - Message Senders
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageNotificationSenderList'
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    post:
+      summary: Create a new message notification sender
+      description: Create a new message notification sender with the provided details.
+      tags:
+        - Message Senders
+      requestBody:
+        description: Message notification sender data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageNotificationSender'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageNotificationSenderResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1006"
+                message: "Invalid request format"
+                description: "The request body is malformed or contains invalid data"
+        "409":
+          description: 'Conflict: A message notification sender with the same name already exists'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1005"
+                message: "Duplicate sender name"
+                description: "A sender with the same name already exists"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+  
+  /notification-senders/message/{id}:
+    get:
+      summary: Get a message notification sender by ID
+      description: Retrieve a message notification sender by its unique identifier.
+      tags:
+        - Message Senders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the message notification sender
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageNotificationSenderResponse'
+        "400":
+          description: 'Bad Request: Invalid sender ID provided'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1002"
+                message: "Invalid sender ID"
+                description: "The provided sender ID is invalid"
+        "404":
+          description: 'Not Found: The specified message notification sender does not exist'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1001"
+                message: "Sender not found"
+                description: "The requested notification sender could not be found"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    put:
+      summary: Update a message notification sender
+      description: Update an existing message notification sender with the provided details.
+      tags:
+        - Message Senders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the message notification sender to update
+          schema:
+            type: string
+      requestBody:
+        description: Updated message notification sender data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageNotificationSender'
+      responses:
+        "200":
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageNotificationSenderResponse'
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1002"
+                message: "Invalid sender ID"
+                description: "The provided sender ID is invalid"
+        "404":
+          description: 'Not Found: The specified message notification sender does not exist'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1001"
+                message: "Sender not found"
+                description: "The requested notification sender could not be found"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+    delete:
+      summary: Delete a message notification sender
+      description: Delete a message notification sender using its unique identifier.
+      tags:
+        - Message Senders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the message notification sender to delete
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content - Successfully deleted the message notification sender
+        "400":
+          description: 'Bad Request: Invalid sender ID provided'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+              example:
+                code: "MNS-1002"
+                message: "Invalid sender ID"
+                description: "The provided sender ID is invalid"
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /notification-senders/otp/send:
+    post:
+      summary: Send a One Time Password (OTP)
+      description: Send a One Time Password (OTP) to a recipient using a specified message notification sender.
+      tags:
+        - One Time Password (OTP)
+      requestBody:
+        description: OTP send request data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient:
+                  type: string
+                  description: Recipient's mobile number
+                  example: "+1234567890"
+                sender_id:
+                  type: string
+                  description: ID of the message notification sender to use
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                channel:
+                  type: string
+                  description: Channel to send the OTP
+                  enum:
+                    - "sms"
+                  example: "sms"
+      responses:
+        "200":
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: Status of the OTP send request
+                    example: "SUCCESS"
+                  session_token:
+                    type: string
+                    description: JWT token for the OTP session
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+        "404":
+          description: 'Not Found: The specified message notification sender does not exist'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /notification-senders/otp/verify:
+    post:
+      summary: Verify a One Time Password (OTP)
+      description: Verify a One Time Password (OTP) using the provided session token and OTP code.
+      tags:
+        - One Time Password (OTP)
+      requestBody:
+        description: OTP verify request data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_token:
+                  type: string
+                  description: JWT token for the OTP session
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                otp_code:
+                  type: string
+                  description: The OTP code received by the user
+                  example: "123456"
+      responses:
+        "200":
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: Status of the OTP verification
+                    example: "VERIFIED"
+        "400":
+          description: 'Bad Request: The request body is malformed or contains invalid data'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientErrorResponse'
+        "500":
+          description: 'Internal Server Error: An unexpected error occurred while processing the request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://localhost:8090/oauth2/authorize
+          tokenUrl: https://localhost:8090/oauth2/token
+          scopes:
+            system: Access to system management APIs
+
+  schemas:
+    MessageNotificationSenderList:
+      type: array
+      description: List of message notification senders
+      items:
+        $ref: '#/components/schemas/MessageNotificationSenderResponse'
+
+    MessageNotificationSenderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the message notification sender
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Name of the message notification sender
+          example: "Twilio SMS Sender"
+        description:
+          type: string
+          description: Description of the message notification sender
+          example: "Sender for sending SMS messages using Twilio"
+        provider:
+          type: string
+          description: Provider of the message notification sender
+          enum:
+            - "twilio"
+            - "vonage"
+            - "custom"
+          example: "twilio"
+        properties:
+          type: array
+          description: Properties of the message notification sender
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Property name
+                example: "account_sid"
+              value:
+                type: string
+                description: Property value (masked with ****** for secret properties)
+                example: "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              is_secret:
+                type: boolean
+                description: Indicates if the property is a secret
+                example: true
+
+    MessageNotificationSender:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the message notification sender
+          example: "Twilio SMS Sender"
+        description:
+          type: string
+          description: Description of the message notification sender
+          example: "Sender for sending SMS messages using Twilio"
+        provider:
+          type: string
+          description: Provider of the message notification sender
+          enum:
+            - "twilio"
+            - "vonage"
+            - "custom"
+          example: "twilio"
+        properties:
+          type: array
+          description: Properties of the message notification sender
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Property name
+                example: "account_sid"
+              value:
+                type: string
+                description: Property value
+                example: "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              is_secret:
+                type: boolean
+                description: Indicates if the property is a secret
+                example: true
+      required:
+        - name
+        - type
+        - provider
+
+    ClientErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "MNS-1006"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid request format"
+        description:
+          type: string
+          description: Detailed error description
+          example: "The request body is malformed or contains invalid data"
+
+    ServerErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "MNS-5001"
+        message:
+          type: string
+          description: Error message
+          example: "Internal server error"
+        description:
+          type: string
+          description: Detailed error description
+          example: "An unexpected error occurred while processing the request"

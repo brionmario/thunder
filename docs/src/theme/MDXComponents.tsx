@@ -32,7 +32,7 @@ import ExpressLogo from '@site/src/components/icons/ExpressLogo';
 import GoLogo from '@site/src/components/icons/GoLogo';
 import PythonLogo from '@site/src/components/icons/PythonLogo';
 import FlutterLogo from '@site/src/components/icons/FlutterLogo';
-import iOSLogo from '@site/src/components/icons/iOSLogo';
+import IOSLogo from '@site/src/components/icons/IOSLogo';
 import AndroidLogo from '@site/src/components/icons/AndroidLogo';
 import ReactRouterLogo from '@site/src/components/icons/ReactRouterLogo';
 
@@ -57,7 +57,7 @@ export default {
   GoLogo,
   PythonLogo,
   FlutterLogo,
-  iOSLogo,
+  IOSLogo,
   AndroidLogo,
   ReactRouterLogo,
   // TODO: Heading styling is a bit off when oxygen-ui Typography is used.

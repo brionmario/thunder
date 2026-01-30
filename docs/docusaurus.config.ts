@@ -284,8 +284,8 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} ${thunderConfig.project.name}.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.nightOwlLight,
+      darkTheme: prismThemes.nightOwl,
     },
   } satisfies Preset.ThemeConfig,
 };

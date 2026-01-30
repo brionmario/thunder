@@ -1,0 +1,18 @@
+# {{featureName}} Feature
+
+This is the {{featureName}} feature for Thunder applications.
+
+## Structure
+
+This feature includes the following directories:
+{{#each ['api', 'components', 'config', 'constants', 'contexts', 'data', 'hooks', 'models', 'pages', 'utils']}}
+- {{this}}/
+{{/each}}
+
+## Usage
+
+Import components from this feature:
+
+```typescript
+import { Component } from '@{{packageName}}';
+```

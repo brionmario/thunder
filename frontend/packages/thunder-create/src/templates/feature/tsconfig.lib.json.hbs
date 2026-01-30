@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "../../dist/libs/{{featureName}}"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
+}

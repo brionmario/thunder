@@ -2453,6 +2453,11 @@
       "items": [
         {
           "type": "doc",
+          "id": "sdks/ios/guides/try-the-sample-app",
+          "label": "Try the Sample App"
+        },
+        {
+          "type": "doc",
           "id": "sdks/ios/guides/accessing-protected-apis",
           "label": "Accessing Protected APIs"
         }
@@ -2537,6 +2542,11 @@
       "items": [
         {
           "type": "doc",
+          "id": "sdks/android/guides/try-the-sample-app",
+          "label": "Try the Sample App"
+        },
+        {
+          "type": "doc",
           "id": "sdks/android/guides/accessing-protected-apis",
           "label": "Accessing Protected APIs"
         }
@@ -2619,6 +2629,11 @@
       "collapsed": false,
       "className": "sidebar-section-icon-guides",
       "items": [
+        {
+          "type": "doc",
+          "id": "sdks/flutter/guides/try-the-sample-app",
+          "label": "Try the Sample App"
+        },
         {
           "type": "doc",
           "id": "sdks/flutter/guides/accessing-protected-apis",
